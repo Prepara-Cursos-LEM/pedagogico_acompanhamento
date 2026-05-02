@@ -1,0 +1,45 @@
+<!--
+Sistema de Acompanhamento Pedagógico | Prepara LEM | 2026
+Copyright © 2026 - Jorge Souza Oliveira dos Santos
+Todos os direitos reservados.
+Para instruções de uso, downloads, versões, visite:
+https://github.com/Prepara-Cursos-LEM/pedagogico_acompanhamento
+Credenciais da conta Github? No drive do pedagógico, pasta senhas.
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prepara LEM | Acompanhamento Pedagógico</title>
+    <link rel="shortcut icon" href="files/ico.svg" type="image/x-icon">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body class="app">
+    <div class="glass-card">
+        <div class="header">
+            <div class="logo">
+                <img src="files/banner.svg" alt="" srcset="">
+            </div>
+            <p>Acompanhamento Pedagógico</p>
+        </div>
+        <fieldset>
+            <legend>Usuário</legend>
+            <select id="user"></select>
+        </fieldset>
+        <fieldset>
+            <legend>Senha</legend>
+            <input type="password" id="password" placeholder="••••••••">
+            <a id="ver-senha">Ver senha</a>
+        </fieldset>
+        <button id="submit" class="submit">
+            Entrar
+        </button>
+    </div>
+</body>
+
+<script src="./index.js"></script>
+
+</html>

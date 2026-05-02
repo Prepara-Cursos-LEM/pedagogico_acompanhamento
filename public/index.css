@@ -1,3 +1,161 @@
-body, html {
-    
+body,
+html {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: #0f172a;
+    color: #e6d5b999;
+    margin: 0;
+    padding: 0;
+}
+
+::selection {
+    background-color: #8e2424;
+    color: #c0fdff;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    scale: 1.2;
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: #0f172a solid 1px;
+    border-radius: 20px;
+    background-color: #0f172a;
+    color: #e6d5b9;
+}
+
+.app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    margin: 0 auto;
+}
+
+* {
+    box-sizing: border-box;
+    transition: all 250ms ease-in-out;
+}
+
+.glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    padding: 20px;
+    gap: 10px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    transform: translate(-50%, -50%);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50vw;
+    max-width: 450px;
+    min-width: 300px;
+    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #e6d5b9;
+    font-size: 16px;
+    letter-spacing: 2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+    opacity: 0.66;
+}
+
+.logo {
+    aspect-ratio: 4/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 20px;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    user-select: none;
+}
+
+.logo img {
+    width: 100%;
+}
+
+.submit {
+    background-color: #2d3e64;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 20px;
+}
+
+.submit:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border: #0f172a solid 1px;
+    border-radius: 20px;
+    background-color: #0f172a;
+    color: #e6d5b9;
+    font-size: 1.2rem;
+    font-weight: 100;
+}
+
+fieldset {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#ver-senha {
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+#ver-senha:hover {
+    cursor: pointer;
+    text-decoration: underline;
 }

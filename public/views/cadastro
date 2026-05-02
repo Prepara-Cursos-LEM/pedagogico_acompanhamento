@@ -1,0 +1,34 @@
+<acacia-tabs>
+    <acacia-tabs-item id="tab1" class="active">Contratos</acacia-tabs-item>
+    <acacia-tabs-item id="tab2">Usuários</acacia-tabs-item>
+    <acacia-tabs-item id="tab3">Matérias</acacia-tabs-item>
+</acacia-tabs>
+<acacia-tabs-content id="grid-content">
+    <text-label>Número do contrato:</text-label>
+    <input class="acacia-input" value="5123547" disabled>
+    <text-label>Aluno:</text-label>
+    <input class="acacia-input" disabled>
+    <text-label>Educador:</text-label>
+    <input class="acacia-input">
+    <text-label>Data término:</text-label>
+    <input class="acacia-input">
+    <text-label>Reposições:</text-label>
+    <input class="acacia-input">
+</acacia-tabs-content>
+<style>
+    #grid-content {
+        background-color: var(--DarkBlue);
+        padding: 5px;
+        gap: 5px;
+        height: fit-content;
+        padding-bottom: 50px;
+    }
+
+    #grid-content .acacia-input {
+        width: 100%;
+    }
+
+    #modal-window-content {
+        overflow: hidden;
+    }
+</style>

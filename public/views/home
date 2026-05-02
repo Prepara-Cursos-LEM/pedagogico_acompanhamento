@@ -1,0 +1,23 @@
+<grid-column id="grid-column">
+    <card-big class="no-elastic tools">
+        <button-squared onmouseover="Tooltip.Tooltip('Escolher colunas', this)">
+            <span class="columns-icon">☑</span>
+        </button-squared>
+        <button-squared onmouseover="Tooltip.Tooltip('Gerar relatório dos selecionados', this)">
+            <span class="columns-icon">📝</span>
+        </button-squared>
+        <button-squared style="background-color: var(--Crimson);" onmouseover="Tooltip.Tooltip('Excluir selecionados', this)">
+            <span class="columns-icon">🗑️</span>
+        </button-squared>
+        <button-squared id="tools-refresh-btn" style="background-color: var(--SeaBlue);" onmouseover="Tooltip.Tooltip('Atualizar', this)">
+            <span class="columns-icon">⟳</span>
+        </button-squared>
+    </card-big>
+    <acacia-tabs>
+        <acacia-tabs-item id="tab1" class="active">Andamento</acacia-tabs-item>
+        <acacia-tabs-item id="tab2">Acompanhamento</acacia-tabs-item>
+        <acacia-tabs-item id="tab3">Apostila</acacia-tabs-item>
+    </acacia-tabs>
+    <acacia-tabs-content id="grid-content">
+    </acacia-tabs-content>
+</grid-column>
