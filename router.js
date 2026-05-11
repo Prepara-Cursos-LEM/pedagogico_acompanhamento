@@ -63,13 +63,15 @@ router.get('/auth/:role/:pass', async (req, res) => {
 });
 
 /**
- * Endpoint para carregar dados para a aplicação
- * a partir de uma planilha de acompanhamento
- * previamente criada.
+ * Endpoint para 
+ * 3: retorna os dados no formato:
+ * { message: "", data: { status: "", dados: [] } }
  */
 router.post('/docs/andamento', async (req, res) => {
     try {
-        const result = await CarregarXLS(req.body);
+        // Expecting body to contain file1 and file2 as base64 strings
+        const { file1, file2 } = req.body;
+        const result = await CarregarXLS(file1, file2);
         res.status(200).json({ message: "File uploaded successfully", data: result });
     } catch (error) {
         console.error("Erro ao fazer upload do arquivo:", error);
@@ -78,31 +80,20 @@ router.post('/docs/andamento', async (req, res) => {
 });
 
 /**
- * Endpoint para baixar uma planilha de andamento
+ * Endpoint para baixar uma planilha de acompanhamento
  * a partir dos dados de cadastro existentes.
  */
-router.get('/docs/andamento', async (req, res) => {
-    try {
-        const arquivo = path.join(tmpDir, "ACOMPANHAMENTO PEDAGOGICO.xlsx");
-        const buffer = await fs.readFile(arquivo);
-        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        res.setHeader("Content-Disposition", 'attachment; filename="ACOMPANHAMENTO PEDAGOGICO.xlsx"');
-        res.send(buffer);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+router.get('/zzz', async (req, res) => {
+    try { } catch (error) {
+        res.status(200).json({ status: "OK" });
     }
 });
 
 
-// POST - Create new entry
-router.post('/', async (req, res) => {
-    try {
-        const payload = req.body;
-        res.status(201).json({ message: "Created successfully", data: payload });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+// POST - Log an error
+router.post('/error', async (req, res) => {
+    const date = Date.now();
+    require("fs").writeFileSync(`data/logs/${date}.log`, JSON.stringify(req.body, false, 2));
 });
 
 module.exports = router;

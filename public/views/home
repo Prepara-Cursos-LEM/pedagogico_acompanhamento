@@ -1,15 +1,19 @@
 <grid-column id="grid-column">
-    <card-big class="no-elastic tools">
+    <card-big class="no-elastic no-hover tools" style="width: fit-content; padding: 3px;">
+        <button-squared id="update-btn" style="background-color: #FB0;" onmouseover="Tooltip.Tooltip('Atualizar Acompanhamento', this)">
+            <span class="columns-icon" style="color: black; font-weight: bolder;">🗁</span>
+        </button-squared>
+        <grid-row style="width: fit-content; background-color: var(--DarkBlue); padding: 5px; gap: 5px; height: 100%; border-radius: 5px;">
+            <text-label>Acompanhamento:</text-label>
+            <select id="atualizacoes" class="acacia-input"></select>
+        </grid-row>
         <button-squared onmouseover="Tooltip.Tooltip('Escolher colunas', this)">
             <span class="columns-icon">☑</span>
         </button-squared>
-        <button-squared onmouseover="Tooltip.Tooltip('Gerar relatório dos selecionados', this)">
+        <button-squared id="print-btn" onmouseover="Tooltip.Tooltip('Gerar relatório dos selecionados', this)">
             <span class="columns-icon">📝</span>
         </button-squared>
-        <button-squared style="background-color: var(--Crimson);" onmouseover="Tooltip.Tooltip('Excluir selecionados', this)">
-            <span class="columns-icon">🗑️</span>
-        </button-squared>
-        <button-squared id="tools-refresh-btn" style="background-color: var(--SeaBlue);" onmouseover="Tooltip.Tooltip('Atualizar', this)">
+        <button-squared id="tools-refresh-btn" style="background-color: var(--SeaBlue);" onmouseover="Tooltip.Tooltip('Atualizar exibição', this)">
             <span class="columns-icon">⟳</span>
         </button-squared>
     </card-big>

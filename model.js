@@ -12,14 +12,14 @@ class Cell {
     }
 
     #extractEffectiveValue(raw) {
-        if (raw === null || raw === undefined) return null;
+        if (raw == null || raw == undefined) return null;
         if (typeof raw !== 'object') return raw;
 
         // Se for um objeto com a propriedade "result", usa esse valor.
         if ('result' in raw) {
             const result = raw.result;
             // Trata erros do Excel (ex: { error: "#REF!" })
-            if (result && typeof result === 'object' && result.error) {
+            if (result && typeof result == 'object' && result.error) {
                 return result.error;
             }
             return result;
@@ -48,7 +48,7 @@ class Cell {
 
     /** Verifica se a célula contém um erro (ex: "#REF!") */
     isError() {
-        return typeof this.#effectiveValue === 'string' && this.#effectiveValue.startsWith('#');
+        return typeof this.#effectiveValue == 'string' && this.#effectiveValue.startsWith('#');
     }
 
     toJSON() {
@@ -260,7 +260,7 @@ class Sheet {
      */
     constructor(name, rawData = []) {
         this.#name = name;
-        if (rawData.length === 0) return;
+        if (rawData.length == 0) return;
         this.#parse(rawData);
     }
 
@@ -269,7 +269,7 @@ class Sheet {
      * @private
      */
     #parse(raw) {
-        if (raw.length === 0) return;
+        if (raw.length == 0) return;
 
         const headerRow = raw[0];
         // Mapeia letra da coluna → nome do cabeçalho (ex: "A" → "ALUNOS ")
@@ -397,7 +397,7 @@ class Sheet {
      * @returns {Object[]}
      */
     toRawJSON() {
-        if (this.#rows.length === 0) return [];
+        if (this.#rows.length == 0) return [];
 
         // Reconstrói a linha de cabeçalho no formato "A1", "B1", etc.
         const headerRow = {};
@@ -451,12 +451,49 @@ class Sheet {
     }
 }
 
-class Andamento {
-    Contrato; Aluno; Status; Educador; DiaAgendamento; HorasAgendamento; MateriaAtual; ProximaMateria; InicioContrato; TerminoContrato; TotalSemanas; SemanasConcluidas; AulasCurso; AulasConcluidas; SaldoAulas; Reposicoes; DataAcompanhamento; DiasVerificados;
+class Cadastro {
+    CONTRATO;
+    ALUNO;
+    INICIOCONTRATO;
+    TERMINOCONTRATO;
+    PROXIMAMATERIA;
+    PARCELASRESTANTES;
+    MATERIASRESTANTES;
+    QUANTIDADEAGENDAMENTOS;
+    MATERIAATUAL;
+    AULASMATERIAATUAL;
+    AULASCONCLUIDAS;
+    DIASAGENDAMENTO;
+    HORASAGENDAMENTO;
+
+    // CAMPOS CALCULADOS
+    projecaoConclusao;
+    terminoContrato;
+    diasAteTerminoContrato;
+    semanasAteTerminoContrato;
+    status;
+    atrasado;
+    totalAulasRestantes;
+    semanasRestantes;
+
+    detalhes = {
+        aulasRestantesAtivas: 12,
+        aulasProximaConhecida: 10,
+        futurasDesconhecidas: 0,
+        totalAulasRestantes: 22,
+        semanasRestantes: "11.0",
+        agendamentosSemana: 2,
+
+        materiasAtivas: [
+            {
+                materia: "Matemática",
+                aulasTotal: 20,
+                aulasConcluidas: 8,
+                diasAgendamento: "Segunda, Quarta",
+                horasAgendamento: "19:00"
+            }
+        ]
+    }
 }
 
-class Materia {
-    Nome; CargaHoraria; TotalAulas; PrevisaoInicio; PrevisaoTermino; DataInicio; DataTermino; AulasConcluidas; SituacaoAndamento; CodigoApostila; EntregaApostila;
-}
-
-module.exports = { Sheet };
+module.exports = { Sheet, Cadastro };

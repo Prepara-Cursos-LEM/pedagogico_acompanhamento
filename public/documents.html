@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Explorer - Explorador de Arquivos</title>
+    <link rel="shortcut icon" href="files/ico.svg" type="image/x-icon">
+    <style>
+        :root {
+            --bg-primary: #1a1b23;
+            --bg-sidebar: #1c1d27;
+            --bg-hover: #252638;
+            --bg-selected: #2c2d44;
+            --bg-surface: #21222d;
+            --text-primary: #e4e4ed;
+            --text-secondary: #9494a8;
+            --text-muted: #6b6b80;
+            --accent-blue: #7b8cff;
+            --accent-green: #4caf84;
+            --accent-amber: #e8a860;
+            --accent-rose: #e8737a;
+            --border: #2e2f3e;
+            --border-light: #35364a;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            --radius: 8px;
+            --radius-sm: 5px;
+            --transition: 180ms ease;
+            --font-sans: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ── Layout ─────────────────────── */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── Sidebar ──────────────────── */
+        .sidebar {
+            width: 340px;
+            min-width: 280px;
+            height: 100%;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width var(--transition);
+            position: relative;
+            z-index: 2;
+        }
+
+        .sidebar-header {
+            padding: 16px 18px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .sidebar-title .icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .btn-download-json {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.2px;
+        }
+
+        .btn-download-json:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-blue);
+            color: #fff;
+            box-shadow: 0 0 0 3px rgba(123, 140, 255, 0.08);
+        }
+
+        .btn-download-json:active {
+            transform: scale(0.96);
+            transition: 80ms ease;
+        }
+
+        .btn-download-json svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            opacity: 0.8;
+        }
+
+        .btn-download-json:hover svg {
+            opacity: 1;
+        }
+
+        /* ── Tree area ────────────────── */
+        .tree-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 8px 0;
+            scroll-behavior: smooth;
+        }
+
+        .tree-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .tree-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tree-scroll::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 10px;
+        }
+
+        .tree-scroll::-webkit-scrollbar-thumb:hover {
+            background: #4a4b5e;
+        }
+
+        /* ── Tree nodes ──────────────── */
+        .tree-node {
+            position: relative;
+        }
+
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            padding-left: calc(14px + var(--depth, 0) * 18px);
+            cursor: pointer;
+            border-radius: 0;
+            transition: background var(--transition);
+            min-height: 34px;
+            position: relative;
+            border-left: 2px solid transparent;
+        }
+
+        .tree-row:hover {
+            background: var(--bg-hover);
+        }
+
+        .tree-row.selected {
+            background: var(--bg-selected);
+            border-left-color: var(--accent-blue);
+        }
+
+        .tree-row.selected .tree-name {
+            color: #fff;
+        }
+
+        .tree-row.folder-row {
+            font-weight: 500;
+        }
+
+        /* Chevron */
+        .chevron {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform var(--transition);
+            opacity: 0.55;
+        }
+
+        .chevron svg {
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+        }
+
+        .chevron.expanded {
+            transform: rotate(90deg);
+            opacity: 0.8;
+        }
+
+        .chevron.leaf {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Icon */
+        .node-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .node-icon svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        /* Name + meta */
+        .tree-name {
+            font-size: 13px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            letter-spacing: 0.15px;
+            transition: color var(--transition);
+        }
+
+        .tree-name .ext {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-left: 1px;
+        }
+
+        .tree-badge {
+            font-size: 10px;
+            font-weight: 500;
+            padding: 2px 7px;
+            border-radius: 10px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+            opacity: 0.7;
+            transition: opacity var(--transition);
+        }
+
+        .badge-doc {
+            background: rgba(76, 175, 132, 0.15);
+            color: var(--accent-green);
+        }
+
+        .badge-sheet {
+            background: rgba(232, 168, 96, 0.15);
+            color: var(--accent-amber);
+        }
+
+        .tree-row:hover .tree-badge {
+            opacity: 1;
+        }
+
+        .file-count {
+            font-size: 10px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            letter-spacing: 0.2px;
+        }
+
+        /* Download mini-btn on hover */
+        .dl-mini {
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            opacity: 0;
+            transition: all var(--transition);
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+        }
+
+        .tree-row:hover .dl-mini {
+            opacity: 0.7;
+        }
+
+        .dl-mini:hover {
+            opacity: 1 !important;
+            background: var(--bg-selected);
+            color: #fff;
+        }
+
+        .dl-mini svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Children container */
+        .tree-children {
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.2), opacity 0.25s ease;
+        }
+
+        .tree-children.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+        }
+
+        .tree-children.expanded {
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        /* ── Main panel ───────────────── */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            padding: 40px;
+            position: relative;
+        }
+
+        .empty-state {
+            text-align: center;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .empty-state .illustration {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            opacity: 0.25;
+        }
+
+        .empty-state h3 {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 12px;
+            color: var(--text-muted);
+            max-width: 280px;
+            line-height: 1.5;
+        }
+
+        .file-detail {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            min-width: 320px;
+            max-width: 420px;
+            text-align: center;
+            animation: fadeInUp 0.35s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .file-detail .detail-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 14px;
+            opacity: 0.9;
+        }
+
+        .file-detail h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .file-detail .detail-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 18px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .file-detail .detail-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .file-detail .detail-info span {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .file-detail .detail-info .label {
+            color: var(--text-muted);
+        }
+
+        .btn-download-file {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: var(--accent-blue);
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 14px rgba(123, 140, 255, 0.25);
+        }
+
+        .btn-download-file:hover {
+            background: #92a0ff;
+            box-shadow: 0 6px 20px rgba(123, 140, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-download-file:active {
+            transform: scale(0.96);
+            transition: 80ms ease;
+        }
+
+        .btn-download-file svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Toast ────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            z-index: 999;
+            animation: slideInToast 0.3s ease, fadeOutToast 0.3s ease 1.8s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.2px;
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        @keyframes slideInToast {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeOutToast {
+            to {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+        }
+
+        /* ── Responsive ──────────────── */
+        @media (max-width: 700px) {
+            .sidebar {
+                width: 100%;
+                min-width: 0;
+                border-right: none;
+            }
+
+            .main-panel {
+                display: none;
+            }
+
+            .sidebar-header {
+                padding: 12px 14px 10px;
+            }
+
+            .tree-row {
+                padding: 7px 10px;
+                padding-left: calc(10px + var(--depth, 0) * 14px);
+                min-height: 38px;
+            }
+
+            .btn-download-json span {
+                display: none;
+            }
+
+            .btn-download-json {
+                padding: 7px 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- ── Sidebar / File Tree ── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">
+                    <!-- Folder icon -->
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Explorador
+                </span>
+                <button class="btn-download-json" id="btnDownloadFullJson" title="Baixar estrutura JSON completa">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Baixar JSON</span>
+                </button>
+            </div>
+            <div class="tree-scroll" id="treeContainer">
+                <!-- Tree rendered by JS -->
+            </div>
+        </aside>
+
+        <!-- ── Main Panel ── -->
+        <main class="main-panel" id="mainPanel">
+            <div class="empty-state" id="emptyState">
+                <!-- Document illustration -->
+                <svg class="illustration" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="10" y="4" width="48" height="64" rx="4" stroke-width="2.5" />
+                    <line x1="22" y1="24" x2="46" y2="24" stroke-width="2" />
+                    <line x1="22" y1="34" x2="46" y2="34" stroke-width="2" />
+                    <line x1="22" y1="44" x2="38" y2="44" stroke-width="2" />
+                    <circle cx="50" cy="52" r="18" fill="none" stroke-width="2.5" />
+                    <polyline points="42,52 49,58 60,46" stroke-width="2.5" />
+                </svg>
+                <h3>Nenhum arquivo selecionado</h3>
+                <p>Clique em um arquivo na árvore para visualizar os detalhes e fazer o download.</p>
+            </div>
+            <div class="file-detail" id="fileDetail" style="display:none;">
+                <div class="detail-icon" id="detailIcon"></div>
+                <h3 id="detailName"></h3>
+                <p class="detail-meta" id="detailType"></p>
+                <div class="detail-info">
+                    <span><span class="label">Pasta</span> <span id="detailFolder"></span></span>
+                    <span><span class="label">Extensão</span> <span id="detailExt"></span></span>
+                </div>
+                <button class="btn-download-file" id="btnDownloadFile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Baixar arquivo
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer"></div>
+
+    <script>
+        (function () {
+            // ──────────────────────────────────────
+            //  DATA: Simulated server JSON structure
+            //  The server sends this JSON describing
+            //  the file tree with 3 folders, 10 files each
+            // ──────────────────────────────────────
+            function generateFileStructure() {
+                const structure = {
+                    name: "Arquivos",
+                    type: "folder",
+                    children: [{
+                        name: "Acompanhamento pedagógico",
+                        type: "folder",
+                        description: "Acompanhamento (.xlsx)",
+                        children: []
+                    }, {
+                        name: "Documentos",
+                        type: "folder",
+                        description: "Documentos (.json)",
+                        children: []
+                    }, {
+                        name: "Planilhas",
+                        type: "folder",
+                        description: "Planilhas (.xlsx)",
+                        children: []
+                    }]
+                };
+
+                // Generate 10 JSON files for "Documentos"
+                for (let i = 1; i <= 10; i++) {
+                    const num = String(i).padStart(2, '0');
+                    structure.children[0].children.push({
+                        name: `documento_${num}.json`,
+                        type: "file",
+                        fileType: "json",
+                        displayType: "documento",
+                        folder: "Documentos"
+                    });
+                }
+
+                // Generate 10 XLSX files for "Planilhas"
+                for (let i = 1; i <= 10; i++) {
+                    const num = String(i).padStart(2, '0');
+                    structure.children[1].children.push({
+                        name: `planilha_${num}.xlsx`,
+                        type: "file",
+                        fileType: "xlsx",
+                        displayType: "planilha",
+                        folder: "Planilhas"
+                    });
+                }
+
+                // Generate 10 XLSX files for "Acompanhamento pedagógico"
+                for (let i = 1; i <= 10; i++) {
+                    const num = String(i).padStart(2, '0');
+                    structure.children[2].children.push({
+                        name: `acompanhamento_${num}.xlsx`,
+                        type: "file",
+                        fileType: "xlsx",
+                        displayType: "planilha",
+                        folder: "Acompanhamento pedagógico"
+                    });
+                }
+
+                return structure;
+            }
+
+            const fileStructure = generateFileStructure();
+
+            // ──────────────────────────────────────
+            //  DOM References
+            // ──────────────────────────────────────
+            const treeContainer = document.getElementById('treeContainer');
+            const mainPanel = document.getElementById('mainPanel');
+            const emptyState = document.getElementById('emptyState');
+            const fileDetail = document.getElementById('fileDetail');
+            const detailIcon = document.getElementById('detailIcon');
+            const detailName = document.getElementById('detailName');
+            const detailType = document.getElementById('detailType');
+            const detailFolder = document.getElementById('detailFolder');
+            const detailExt = document.getElementById('detailExt');
+            const btnDownloadFile = document.getElementById('btnDownloadFile');
+            const btnDownloadFullJson = document.getElementById('btnDownloadFullJson');
+            const toastContainer = document.getElementById('toastContainer');
+
+            let selectedFileData = null;
+            let selectedRowElement = null;
+
+            // ──────────────────────────────────────
+            //  ICON SVGs
+            // ──────────────────────────────────────
+            function folderIconSVG(color = '#7b8cff') {
+                return `
+                <svg viewBox="0 0 20 17" fill="none">
+                  <path d="M1.5 2.5h6.2l1.8 2.2h8.3v9.8H1.5V2.5z" 
+                        fill="${color}" fill-opacity="0.22" 
+                        stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/>
+                </svg>`;
+            }
+
+            function folderOpenIconSVG(color = '#7b8cff') {
+                return `
+                <svg viewBox="0 0 20 17" fill="none">
+                  <path d="M1.5 2.5h6.2l1.8 2.2h8.3v1.5H3.8l-1.6 8.3h14.6l1.5-7.6H8.2L6.4 4.7H1.5V2.5z" 
+                        fill="${color}" fill-opacity="0.28" 
+                        stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/>
+                </svg>`;
+            }
+
+            function jsonFileIconSVG() {
+                return `
+                <svg viewBox="0 0 18 20" fill="none">
+                  <rect x="2" y="1" width="14" height="18" rx="2.5" fill="#4caf84" fill-opacity="0.18" stroke="#4caf84" stroke-width="1.3"/>
+                  <text x="9" y="13" text-anchor="middle" font-size="8" font-weight="700" fill="#4caf84" font-family="monospace">{ }</text>
+                </svg>`;
+            }
+
+            function xlsxFileIconSVG() {
+                return `
+                <svg viewBox="0 0 18 20" fill="none">
+                  <rect x="2" y="1" width="14" height="18" rx="2.5" fill="#e8a860" fill-opacity="0.18" stroke="#e8a860" stroke-width="1.3"/>
+                  <rect x="5.5" y="7" width="7" height="2.5" rx="0.8" fill="#e8a860" fill-opacity="0.5"/>
+                  <rect x="5.5" y="11" width="7" height="2.5" rx="0.8" fill="#e8a860" fill-opacity="0.35"/>
+                </svg>`;
+            }
+
+            function chevronSVG() {
+                return `
+                <svg viewBox="0 0 16 16" fill="none">
+                  <polyline points="5.5,2.5 11,8 5.5,13.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>`;
+            }
+
+            function downloadMiniSVG() {
+                return `
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 14v2.5H4V14"/>
+                  <polyline points="7 8.5 10 11.5 13 8.5"/>
+                  <line x1="10" y1="11.5" x2="10" y2="3.5"/>
+                </svg>`;
+            }
+
+            // ──────────────────────────────────────
+            //  RENDER TREE
+            // ──────────────────────────────────────
+            function renderTree() {
+                treeContainer.innerHTML = '';
+                // Render root children directly (the 3 folders)
+                fileStructure.children.forEach((folder, index) => {
+                    renderNode(folder, treeContainer, 0, `root-${index}`);
+                });
+                // Expand all top-level folders by default
+                const allChildren = treeContainer.querySelectorAll('.tree-children');
+                allChildren.forEach(child => {
+                    child.classList.add('expanded');
+                    child.classList.remove('collapsed');
+                    child.style.maxHeight = child.scrollHeight + 'px';
+                });
+                const allChevrons = treeContainer.querySelectorAll('.chevron:not(.leaf)');
+                allChevrons.forEach(ch => ch.classList.add('expanded'));
+                // Update folder icons to open state
+                updateAllFolderIcons(true);
+            }
+
+            function renderNode(node, parentEl, depth, uniqueId) {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'tree-node';
+                nodeDiv.dataset.uniqueId = uniqueId;
+                nodeDiv.dataset.depth = depth;
+
+                const row = document.createElement('div');
+                row.className = 'tree-row';
+                row.style.setProperty('--depth', depth);
+                row.dataset.nodeType = node.type;
+                row.dataset.uniqueId = uniqueId;
+
+                // Chevron
+                const chevron = document.createElement('span');
+                chevron.className = 'chevron';
+                if (node.type === 'folder') {
+                    chevron.innerHTML = chevronSVG();
+                } else {
+                    chevron.classList.add('leaf');
+                }
+                row.appendChild(chevron);
+
+                // Icon
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'node-icon';
+                if (node.type === 'folder') {
+                    iconSpan.innerHTML = folderIconSVG();
+                    iconSpan.dataset.iconType = 'folder';
+                } else if (node.fileType === 'json') {
+                    iconSpan.innerHTML = jsonFileIconSVG();
+                    iconSpan.dataset.iconType = 'json';
+                } else if (node.fileType === 'xlsx') {
+                    iconSpan.innerHTML = xlsxFileIconSVG();
+                    iconSpan.dataset.iconType = 'xlsx';
+                }
+                row.appendChild(iconSpan);
+
+                // Name
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'tree-name';
+                if (node.type === 'file') {
+                    const dotIndex = node.name.lastIndexOf('.');
+                    const baseName = dotIndex > 0 ? node.name.substring(0, dotIndex) : node.name;
+                    const ext = dotIndex > 0 ? node.name.substring(dotIndex) : '';
+                    nameSpan.innerHTML = `${escapeHTML(baseName)}<span class="ext">${escapeHTML(ext)}</span>`;
+                } else {
+                    nameSpan.textContent = node.name;
+                }
+                row.appendChild(nameSpan);
+
+                // File count badge for folders
+                if (node.type === 'folder' && node.children) {
+                    const count = node.children.length;
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'file-count';
+                    countSpan.textContent = `${count} ${count === 1 ? 'arquivo' : 'arquivos'}`;
+                    row.appendChild(countSpan);
+                }
+
+                // Badge for files
+                if (node.type === 'file') {
+                    const badge = document.createElement('span');
+                    badge.className = 'tree-badge';
+                    if (node.displayType === 'documento') {
+                        badge.classList.add('badge-doc');
+                        badge.textContent = 'documento';
+                    } else if (node.displayType === 'planilha') {
+                        badge.classList.add('badge-sheet');
+                        badge.textContent = 'planilha';
+                    }
+                    row.appendChild(badge);
+
+                    // Mini download button
+                    const dlMini = document.createElement('button');
+                    dlMini.className = 'dl-mini';
+                    dlMini.innerHTML = downloadMiniSVG();
+                    dlMini.title = 'Baixar arquivo';
+                    dlMini.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        downloadFile(node);
+                    });
+                    row.appendChild(dlMini);
+                }
+
+                // Store node data
+                row._nodeData = node;
+
+                // Click handler
+                row.addEventListener('click', (e) => {
+                    if (e.target.closest('.dl-mini')) return; // handled separately
+                    if (node.type === 'folder') {
+                        toggleFolder(nodeDiv, chevron, iconSpan, node);
+                    } else if (node.type === 'file') {
+                        selectFile(node, row);
+                    }
+                });
+
+                nodeDiv.appendChild(row);
+
+                // Children container for folders
+                if (node.type === 'folder' && node.children) {
+                    const childrenDiv = document.createElement('div');
+                    childrenDiv.className = 'tree-children collapsed';
+                    node.children.forEach((child, idx) => {
+                        renderNode(child, childrenDiv, depth + 1, `${uniqueId}-${idx}`);
+                    });
+                    nodeDiv.appendChild(childrenDiv);
+                    row._childrenDiv = childrenDiv;
+                }
+
+                row._chevron = chevron;
+                row._iconSpan = iconSpan;
+                row._nodeDiv = nodeDiv;
+                parentEl.appendChild(nodeDiv);
+            }
+
+            function toggleFolder(nodeDiv, chevron, iconSpan, node) {
+                const childrenDiv = nodeDiv.querySelector(':scope > .tree-children');
+                if (!childrenDiv) return;
+
+                const isExpanded = childrenDiv.classList.contains('expanded');
+
+                if (isExpanded) {
+                    // Collapse
+                    childrenDiv.style.maxHeight = childrenDiv.scrollHeight + 'px';
+                    requestAnimationFrame(() => {
+                        childrenDiv.classList.remove('expanded');
+                        childrenDiv.classList.add('collapsed');
+                        childrenDiv.style.maxHeight = '0px';
+                    });
+                    chevron.classList.remove('expanded');
+                    updateFolderIcon(iconSpan, false);
+                } else {
+                    // Expand
+                    childrenDiv.classList.remove('collapsed');
+                    childrenDiv.classList.add('expanded');
+                    childrenDiv.style.maxHeight = childrenDiv.scrollHeight + 'px';
+                    chevron.classList.add('expanded');
+                    updateFolderIcon(iconSpan, true);
+                    // Auto-collapse after transition to set auto height
+                    const onTransitionEnd = () => {
+                        if (childrenDiv.classList.contains('expanded')) {
+                            childrenDiv.style.maxHeight = 'none';
+                        }
+                        childrenDiv.removeEventListener('transitionend', onTransitionEnd);
+                    };
+                    childrenDiv.addEventListener('transitionend', onTransitionEnd);
+                }
+            }
+
+            function updateFolderIcon(iconSpan, isOpen) {
+                if (iconSpan.dataset.iconType === 'folder') {
+                    iconSpan.innerHTML = isOpen ? folderOpenIconSVG() : folderIconSVG();
+                }
+            }
+
+            function updateAllFolderIcons(isOpen) {
+                const allFolderIcons = treeContainer.querySelectorAll('[data-icon-type="folder"]');
+                allFolderIcons.forEach(icon => {
+                    icon.innerHTML = isOpen ? folderOpenIconSVG() : folderIconSVG();
+                });
+            }
+
+            function selectFile(node, rowElement) {
+                // Deselect previous
+                if (selectedRowElement) {
+                    selectedRowElement.classList.remove('selected');
+                }
+                // Select new
+                rowElement.classList.add('selected');
+                selectedRowElement = rowElement;
+                selectedFileData = node;
+
+                // Update detail panel
+                showFileDetail(node);
+            }
+
+            function showFileDetail(node) {
+                emptyState.style.display = 'none';
+                fileDetail.style.display = 'block';
+
+                // Icon
+                if (node.fileType === 'json') {
+                    detailIcon.innerHTML = jsonFileIconSVG().replace('width="18" height="20"',
+                        'width="52" height="56"');
+                } else {
+                    detailIcon.innerHTML = xlsxFileIconSVG().replace('width="18" height="20"',
+                        'width="52" height="56"');
+                }
+
+                detailName.textContent = node.name;
+                detailType.textContent = node.displayType === 'documento' ? 'Documento JSON' : 'Planilha XLSX';
+                detailFolder.textContent = node.folder || '—';
+                detailExt.textContent = node.fileType === 'json' ? '.json' : '.xlsx';
+
+                btnDownloadFile.onclick = () => downloadFile(node);
+            }
+
+            function showEmptyState() {
+                fileDetail.style.display = 'none';
+                emptyState.style.display = 'block';
+                if (selectedRowElement) {
+                    selectedRowElement.classList.remove('selected');
+                    selectedRowElement = null;
+                }
+                selectedFileData = null;
+            }
+
+            // ──────────────────────────────────────
+            //  DOWNLOAD FUNCTIONS
+            // ──────────────────────────────────────
+            function downloadFile(node) {
+                let content = '';
+                let mimeType = 'application/octet-stream';
+
+                if (node.fileType === 'json') {
+                    const fileIndex = node.name.match(/\d+/);
+                    const idx = fileIndex ? parseInt(fileIndex[0]) : 1;
+                    const sampleData = {
+                        id: `doc-${String(idx).padStart(3, '0')}`,
+                        titulo: `Documento de Exemplo ${String(idx).padStart(2, '0')}`,
+                        conteudo: 'Este é um documento de exemplo gerado automaticamente pelo sistema.',
+                        dataCriacao: new Date(2024, 0, idx).toISOString(),
+                        autor: 'Sistema',
+                        tags: ['exemplo', 'documento', 'json'],
+                        versao: '1.0',
+                        status: idx % 2 === 0 ? 'aprovado' : 'pendente'
+                    };
+                    content = JSON.stringify(sampleData, null, 2);
+                    mimeType = 'application/json';
+                } else if (node.fileType === 'xlsx') {
+                    // Generate CSV-like content for demo
+                    const fileIndex = node.name.match(/\d+/);
+                    const idx = fileIndex ? parseInt(fileIndex[0]) : 1;
+                    const rows = [
+                        ['Nome', 'Valor', 'Data', 'Status', 'Categoria'],
+                        [`Item A-${idx}`, String(idx * 100), `2024-${String((idx % 12) + 1).padStart(2, '0')}-15`,
+                            'Ativo', 'Principal'
+                        ],
+                        [`Item B-${idx}`, String(idx * 150),
+                        `2024-${String(((idx + 3) % 12) + 1).padStart(2, '0')}-20`, 'Pendente',
+                            'Secundário'
+                        ],
+                        [`Item C-${idx}`, String(idx * 75),
+                        `2024-${String(((idx + 6) % 12) + 1).padStart(2, '0')}-10`, 'Concluído',
+                            'Terciário'
+                        ],
+                        [`Item D-${idx}`, String(idx * 220), `2024-${String(((idx + 9) % 12) + 1).padStart(2,
+                            '0')}-05`, 'Ativo', 'Principal'],
+                    ];
+                    content = rows.map(r => r.join(',')).join('\n');
+                    mimeType = 'text/csv';
+                }
+
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = node.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast(`✓ Baixado: ${node.name}`, 'success');
+            }
+
+            function downloadFullJson() {
+                // Create a clean copy for download (the server JSON structure)
+                const exportData = JSON.parse(JSON.stringify(fileStructure));
+                const jsonStr = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'estrutura_arquivos.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('✓ Estrutura JSON baixada com sucesso!', 'success');
+            }
+
+            // ──────────────────────────────────────
+            //  TOAST
+            // ──────────────────────────────────────
+            function showToast(message, type = '') {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                toastContainer.appendChild(toast);
+                // Auto-remove after animation
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 2200);
+            }
+
+            // ──────────────────────────────────────
+            //  UTILS
+            // ──────────────────────────────────────
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            //  EVENT LISTENERS
+            // ──────────────────────────────────────
+            btnDownloadFullJson.addEventListener('click', downloadFullJson);
+
+            // Click on main panel empty area to deselect
+            mainPanel.addEventListener('click', function (e) {
+                if (e.target === mainPanel || e.target.closest('.empty-state') && !e.target.closest(
+                    '.file-detail')) {
+                    showEmptyState();
+                }
+            });
+
+            // ──────────────────────────────────────
+            //  INIT
+            // ──────────────────────────────────────
+            renderTree();
+
+            // Colapsa todas as pastas no início
+            const allChildren = treeContainer.querySelectorAll('.tree-children');
+            allChildren.forEach(child => {
+                child.classList.remove('expanded');
+                child.classList.add('collapsed');
+                child.style.maxHeight = '0px';
+            });
+
+            const allChevrons = treeContainer.querySelectorAll('.chevron:not(.leaf)');
+            allChevrons.forEach(ch => ch.classList.remove('expanded'));
+
+            // Atualiza ícones das pastas para estado fechado
+            updateAllFolderIcons(false);
+
+            showEmptyState();
+
+            console.log('%c📁 File Explorer inicializado %c| %c30 arquivos em 3 pastas %c| %cPronto para uso',
+                'color: #7b8cff; font-weight: bold;',
+                '',
+                'color: #e4e4ed;',
+                '',
+                'color: #4caf84;');
+            console.log('%c💡 Clique em uma pasta para expandir %c| %cClique em um arquivo para selecionar %c| %cUse o botão de download para baixar',
+                'color: #e8a860;',
+                '',
+                'color: #9494a8;',
+                '',
+                'color: #9494a8;');
+            console.log('%c📋 Estrutura JSON disponível para download no botão "Baixar JSON"',
+                'color: #7b8cff;');
+        })();
+    </script>
+</body>
+
+</html>
