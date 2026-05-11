@@ -4,6 +4,7 @@
     <acacia-tabs-item id="tab3">Matérias</acacia-tabs-item>
 </acacia-tabs>
 <acacia-tabs-content id="grid-content">
+    <text-subheading><em>Ainda não é possível editar contratos.</em></text-subheading>
     <text-label>Número do contrato:</text-label>
     <input class="acacia-input" value="5123547" disabled>
     <text-label>Aluno:</text-label>

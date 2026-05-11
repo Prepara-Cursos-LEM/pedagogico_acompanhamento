@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Impressão de Contratos</title>
+  <link rel="shortcut icon" href="files/ico.svg" type="image/x-icon">
 
   <style>
     .print-page {
@@ -61,8 +62,9 @@
   <div id="conteudo"></div>
 
   <script>
-
     const dados = localStorage.getItem("print-dados") ? JSON.parse(localStorage.getItem("print-dados")) : [];
+
+    console.log(dados);
 
     const container = document.getElementById("conteudo");
 
@@ -70,49 +72,12 @@
 
       const div = document.createElement("div");
       div.className = "registro";
-
-      div.innerHTML = `
-        <div class="titulo">
-            CONTRATO: ${registro["CONTRATO"]}
-        </div>
-
-        <div class="linha"><b>ALUNO:</b> ${registro["ALUNO"]}</div>
-        <div class="linha"><b>INICIO-CONTRATO:</b> ${registro["INICIO-CONTRATO"]}</div>
-        <div class="linha"><b>TERMINO-CONTRATO:</b> ${registro["TERMINO-CONTRATO"]}</div>
-        <div class="linha"><b>PROXIMA-MATERIA:</b> ${registro["PROXIMA-MATERIA"]}</div>
-        <div class="linha"><b>PARCELAS-RESTANTES:</b> ${registro["PARCELAS-RESTANTES"]}</div>
-        <div class="linha"><b>MATERIAS-RESTANTES:</b> ${registro["MATERIAS-RESTANTES"]}</div>
-        <div class="linha"><b>QUANTIDADE-AGENDAMENTOS:</b> ${registro["QUANTIDADE-AGENDAMENTOS"]}</div>
-        <div class="linha"><b>MATERIA-ATUAL:</b> ${registro["MATERIA-ATUAL"]}</div>
-        <div class="linha"><b>AULAS-MATERIA-ATUAL:</b> ${registro["AULAS-MATERIA-ATUAL"]}</div>
-        <div class="linha"><b>AULAS-CONCLUIDAS:</b> ${registro["AULAS-CONCLUIDAS"]}</div>
-        <div class="linha"><b>DIAS-AGENDAMENTO:</b> ${registro["DIAS-AGENDAMENTO"]}</div>
-        <div class="linha"><b>HORAS-AGENDAMENTO:</b> ${registro["HORAS-AGENDAMENTO"]}</div>
-        <div class="linha"><b>CODIGO-APOSTILA:</b> ${registro["CODIGO-APOSTILA"]}</div>
-        <div class="linha"><b>ENTREGA-FISICA:</b> ${registro["ENTREGA-FISICA"]}</div>
-
-        <div class="subtitulo">MATERIAS:</div>
-
-        <div class="materias-container">
-            ${registro.MATERIAS.map(materia => `
-                    <div class="materia">
-                        <div><b>MATERIA:</b> ${materia["MATERIA"]}</div>
-                        <div><b>AULAS-MATERIA:</b> ${materia["AULAS-MATERIA"]}</div>
-                        <div><b>AULAS-CONCLUIDAS:</b> ${materia["AULAS-CONCLUIDAS"]}</div>
-                    </div>
-                `).join("")
-        }
-        </div>
-
-        <div class="subtitulo">Detalhes:</div>
-
-        <div class="detalhes">
-            <div><b>SITUACAO:</b> ${registro.Detalhes["SITUACAO"]}</div>
-            <div><b>AULAS-DIFERENCA:</b> ${registro.Detalhes["AULAS-DIFERENCA"]}</div>
-            <div><b>DATA-ACOMPANHAMENTO:</b> ${registro.Detalhes["DATA-ACOMPANHAMENTO"]}</div>
-        </div>
-    `;
-
+      Object.keys(registro).forEach(key => {
+        const linha = document.createElement("div");
+        linha.className = "linha";
+        linha.innerHTML = `<b>${key}:</b> ${registro[key]}`;
+        div.appendChild(linha);
+      });
       container.appendChild(div);
     });
 

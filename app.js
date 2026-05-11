@@ -103,8 +103,9 @@ const ServerApp = {
       return cleaned;
     },
     Cadastros: async () => {
-      const date = Utils.GenerateDailySecret(Date.now(), "_").path;
-      const data1 = JSON.parse(await filseService.read("data/cadastros/" + date + ".json", "utf-8"));
+      const ultimo = Utils.ultimoCadastro();
+      console.log("obtendo ultimo cadastro: " + ultimo);
+      const data1 = JSON.parse(await filseService.read("data/cadastros/" + ultimo, "utf-8"));
       const data2 = JSON.parse(await filseService.read("data/h", "utf-8"));
       return { cadastros: data1, atualizacoes: data2 };
     },
@@ -116,7 +117,7 @@ const ServerApp = {
       // Calcular o progresso do aluno:
       const materias = JSON.parse(await filseService.read("data/materias.json", "utf-8"));
       const params = JSON.parse(await filseService.read("data/params", "utf-8"));
-      const cadastros = ServerApp.calcularProgresso(controle, materias, params);
+      const cadastros = ServerApp.calcularProgresso(controle, segmenta, materias, params);
       // Gravar o resultado:
       const filename = `${tmpDir}/cadastros/${Utils.GenerateDailySecret(Date.now(), "_").path}.json`;
       await filseService.write(filename, JSON.stringify(cadastros, false, 2), null);
@@ -126,7 +127,7 @@ const ServerApp = {
     },
   },
   // Cálculo de situação do aluno:
-  calcularProgresso(contratosArray, materiasJson, params = { "rate": 6, "margin": 4 }) {
+  calcularProgresso(contratosArray, segmentaArray, materiasJson, params = { "rate": 6, "margin": 4 }) {
     // Mapeamento de dias da semana em português para números (0 = Domingo)
     const diasSemanaMap = {
       'Domingo': 0,
@@ -294,11 +295,22 @@ const ServerApp = {
       const situacao = getSituacao(diffDays);
       // 6. Monta objeto do contrato consolidado
       const firstRow = rows[0];
+
+      function formatData(data) {
+        if (!data) return;
+        data = new Date(data);
+        const dia = data.getDate();
+        const mes = data.getMonth() + 1;
+        const ano = data.getFullYear();
+        return `${dia}/${mes}/${ano}`;
+      }
+
       const contractObj = {
         "CONTRATO": contratoId,
         "ALUNO": firstRow["Aluno"],
-        "INICIO-CONTRATO": firstRow["Data Inicial"],
-        "TERMINO-CONTRATO": firstRow["Data Final"],
+        "EDUCADOR": segmentaArray.find(x => x["Contrato"] === firstRow["Contrato"])["Nome Educador"],
+        "INICIO-CONTRATO": formatData(excelSerialToJSDate(firstRow["Data Inicial"])),
+        "TERMINO-CONTRATO": formatData(excelSerialToJSDate(firstRow["Data Final"])),
         "PROXIMA-MATERIA": firstRow["Próxima Matéria"],
         "PARCELAS-RESTANTES": firstRow["Recebimentos Futuros"],
         "MATERIAS-RESTANTES": firstRow["Quantidade Matérias Restantes"],
@@ -313,10 +325,11 @@ const ServerApp = {
         "MATERIAS": subjectList.map(s => ({
           "MATERIA": s.nome,
           "AULAS-MATERIA": s.totalAulas,
-          "AULAS-CONCLUIDAS": s.concluidas
+          "AULAS-CONCLUIDAS": s.concluidas,
         })),
         "Detalhes": {
           "SITUACAO": situacao,
+          "AULAS-RECUPERADAS": 0,
           "AULAS-DIFERENCA": diffDays,
           "DATA-ACOMPANHAMENTO": new Date().toISOString().split('T')[0]
         }
@@ -423,98 +436,26 @@ const Utils = {
       semanas: diffSemanas
     };
   },
-  analisarJSON: (jsonData, dataRef = new Date()) => {
-    // Mapeia os dias da semana do JSON para números do JavaScript (0=Dom, 1=Seg, ...)
-    const diaSemanaMap = {
-      'domingo': 0,
-      'segunda-feira': 1,
-      'terça-feira': 2,
-      'quarta-feira': 3,
-      'quinta-feira': 4,
-      'sexta-feira': 5,
-      'sábado': 6
-    };
-    // Converte string dd/mm/aaaa para Date (ignora horário). Retorna null se for data inválida (ano 1899 etc.)
-    function parseDate(str) {
-      if (!str || str.indexOf('1899') !== -1) return null;
-      const [d, m, y] = str.split('/').map(Number);
-      const date = new Date(y, m - 1, d);
-      return isNaN(date.getTime()) ? null : date;
+  ultimoCadastro: () => {
+    const pasta = 'data/cadastros';
+    function extrairData(nomeArquivo) {
+      const match = nomeArquivo.match(/^(\d{2})_(\d{2})_(\d{4})\.json$/);
+      if (!match) return null;
+      const [, dd, mm, yyyy] = match;
+      return new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
     }
-    // A partir de string "Segunda-Feira,Quinta-Feira" retorna array de números dos dias da semana.
-    // Para "Indefinido" retorna array vazio.
-    function getWeekDays(diaStr) {
-      if (!diaStr || diaStr.toLowerCase() === 'indefinido') return [];
-      return diaStr.split(',')
-        .map(s => diaSemanaMap[s.trim().toLowerCase()])
-        .filter(v => v !== undefined);
-    }
-    // "14:00:00,15:00:00" -> 2 (cada horário é uma aula)
-    function getAulasPorDia(horasStr) {
-      if (!horasStr) return 0;
-      return horasStr.split(',').filter(s => s.trim() !== '').length;
-    }
-    // Conta ocorrências de um determinado dia da semana entre duas datas (inclusive)
-    function countDaysBetween(start, end, targetDay, aulasPorDia) {
-      let count = 0;
-      let current = new Date(start);
-      // Avança até o primeiro 'targetDay' após ou igual a start
-      while (current.getDay() !== targetDay) {
-        current.setDate(current.getDate() + 1);
-      }
-      // Enquanto não passar do end, conta as aulas e pula 7 dias
-      while (current <= end) {
-        count += aulasPorDia;
-        current.setDate(current.getDate() + 7);
-      }
-      return count;
-    }
-
-    // Faz o cálculo de atraso para uma matéria individual.
-    // Retorna null se não for possível calcular (datas inválidas, dia indefinido, etc.)
-    function calcularAtrasoMateria(materia, dataReferencia = new Date()) {
-      const inicio = parseDate(materia.PREVISAOINICIO);
-      const termino = parseDate(materia.PREVISAOTERMINO);
-      if (!inicio || !termino) return null;
-
-      const dias = getWeekDays(materia.DIAAGENDAMENTO);
-      const aulasPorDia = getAulasPorDia(materia.HORASAGENDAMENTO);
-      if (dias.length === 0 || aulasPorDia === 0) return null;
-
-      // A data de corte para contagem é a menor entre a data de referência e o término do curso
-      const dataCorte = dataReferencia < termino ? dataReferencia : termino;
-
-      let aulasPlanejadas = 0;
-      for (const dia of dias) {
-        aulasPlanejadas += countDaysBetween(inicio, dataCorte, dia, aulasPorDia);
-      }
-
-      const aulasConcluidas = materia.AULASCONCLUIDAS || 0;
-      return {
-        planejadas: aulasPlanejadas,
-        concluidas: aulasConcluidas,
-        atraso: aulasPlanejadas - aulasConcluidas   // > 0 = atrasado, < 0 = adiantado
-      };
-    }
-    // Analisar o JSON:
-    const resultados = [];
-    for (const contrato of jsonData) {
-      for (const materia of contrato.MATERIAS) {
-        const res = calcularAtrasoMateria(materia, dataRef);
-        if (res !== null) {
-          resultados.push({
-            CONTRATO: contrato.CONTRATO,
-            ALUNO: contrato.ALUNO,
-            MATERIA: materia.NOME,
-            AULAS_PLANEJADAS: res.planejadas,
-            AULAS_CONCLUIDAS: res.concluidas,
-            ATRASO: res.atraso,
-            STATUS: res.atraso > 0 ? 'ATRASADO' : (res.atraso < 0 ? 'ADIANTADO' : 'EM DIA')
-          });
-        }
+    const arquivos = require('fs').readdirSync(pasta);
+    let maisRecente = null;
+    let dataMaisRecente = null;
+    for (const arquivo of arquivos) {
+      const data = extrairData(arquivo);
+      if (!data) continue;
+      if (!dataMaisRecente || data > dataMaisRecente) {
+        dataMaisRecente = data;
+        maisRecente = arquivo;
       }
     }
-    return resultados;
+    return maisRecente;
   },
   convert: {
     fileToBase64(buffer) {

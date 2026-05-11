@@ -98,7 +98,7 @@ const App = {
             }
         };
         document.getElementById("print-btn").onclick = () => {
-            localStorage.setItem("print-dados", JSON.stringify(App.Cadastros.contratos));
+            localStorage.setItem("print-dados", JSON.stringify(App.Cadastros.selection));
             window.open("print.html", "_blank");
         };
         document.getElementById("update-btn").onclick = () => {
@@ -205,9 +205,9 @@ const App = {
             });
             UI.MainGrid.Render();
         },
-        CopiarNContrato: async (obj = new Contrato()) => {
-            console.log(obj, "CopiarNContrato");
-            const contrato = obj["CONTRATO"];
+        CopiarNContrato: () => {
+            const resultado = App.Cadastros.current;
+            const contrato = resultado["CONTRATO"];
             const input = document.createElement("textarea");
             input.value = contrato;
             input.style.position = "absolute";
@@ -216,11 +216,12 @@ const App = {
             input.select();
             document.execCommand("copy");
             input.remove();
+            Tooltip.Toast("Número do contrado copiado: " + contrato, 5);
             return contrato;
         },
-        CopiarNome: (obj = new Contrato()) => {
-            console.log(obj, "CopiarNome");
-            const nome = obj["ALUNO"];
+        CopiarNome: () => {
+            const resultado = App.Cadastros.current;
+            const nome = resultado["ALUNO"];
             const input = document.createElement("textarea");
             input.value = nome;
             input.style.position = "absolute";
@@ -229,9 +230,11 @@ const App = {
             input.select();
             document.execCommand("copy");
             input.remove();
+            Tooltip.Toast("Nome copiado: " + nome, 5);
             return nome;
         },
-        AlterarDataTermino: async (obj = new Contrato()) => {
+        AlterarDataTermino: async () => {
+            const resultado = App.Cadastros.current;
             const modalContent = await Modal.Window("Editar contrato", "Jorge");
             modalContent.style.padding = "5px";
             await Renderer.Load("cadastro", modalContent);
@@ -244,36 +247,39 @@ const App = {
             App.Cadastros.current = res;
             App.Logica.GravarAlteracoes();
         },
-        AlterarEducador: (obj = new Contrato()) => {
-            alert("AlterarEducador");
-            return;
+        AlterarEducador: () => {
+            const resultado = App.Cadastros.current;
+            Tooltip.Toast("Contrato selecionado: " + resultado["CONTRATO"] + "<br>Nome: " + resultado["ALUNO"], 5);
             //
         },
-        AlterarQtdReposicoes: (obj = new Contrato()) => {
-            alert("AlterarQtdReposicoes");
-            return;
+        InserirReposicao: () => {
+            const resultado = App.Cadastros.current;
+            Tooltip.Toast("Contrato selecionado: " + resultado["CONTRATO"] + "<br>Nome: " + resultado["ALUNO"], 5);
             //
         },
-        EditarContrato: (obj = new Contrato()) => {
-            alert("EditarContrato");
+        InserirFolga: () => {
+            const resultado = App.Cadastros.current;
+            Tooltip.Toast("Contrato selecionado: " + resultado["CONTRATO"] + "<br>Nome: " + resultado["ALUNO"], 5);
+            //
+        },
+        EditarContrato: async () => {
+            const resultado = App.Cadastros.current;
+            const modalContent = await Modal.Window("Editar contrato", "Jorge");
+            modalContent.style.padding = "5px";
+            await Renderer.Load("cadastro", modalContent);
+            // Bloquar campos não alteráveis:
+            // Obter alterações:
+            const res = {};
+            //
+            // Salvar alterações:
             return;
-            const resultado = App.Cadastros.contratos.map(x => {
-                x.Contrato === obj.Contrato
-                    ? { ...x, ...obj }
-                    : x;
-                return x;
-            });
-
+            App.Cadastros.current = res;
+            App.Logica.GravarAlteracoes();
         },
         ExcluirContratos: (obj = []) => {
-            alert("ExcluirContratos");
-            return;
-            const contratosRemover = new Set(obj.map(x => x.Contrato));
-            const resultado = App.Cadastros.contratos.filter(
-                x => !contratosRemover.has(x.Contrato)
-            );
-            App.Cadastros.contratos = resultado;
-            App.Logica.GravarAlteracoes();
+            const resultado = App.Cadastros.current;
+            Tooltip.Toast("Contrato selecionado: " + resultado["Contrato"] + "<br>Nome: " + resultado["Aluno"], 7);
+            //
         },
         GravarAlteracoes: () => {
             //
@@ -458,41 +464,51 @@ const UI = {
             ]
         },
         acompanhamento: () => {
-            // Filtros:
-            const filtros = {
-                gridAtual: "string",
-                colunas: [],
-                situacao: {
-                    filtrar: "string",
-                    classificar: "string",
-                },
-                educador: {
-                    filtrar: "string",
-                    classificar: "string",
-                },
-                contrato: {
-                    filtrar: "string",
-                    classificar: "string",
-                }
-            };
             const data = [];
-            const headers = Object.keys(App.Cadastros.contratos[0]["MATERIAS"][0]);
-            data.push(["CONTRATO", "ALUNO", ...headers]);
-            App.Cadastros.contratos.forEach(contrato => {
-                const keys = UI.MainGrid.colunas[App.Cadastros.filtros.gridAtual];
-                contrato["MATERIAS"].forEach((materia, index) => {
-                    const matValues = Object.values(materia);
-                    const matKeys = Object.keys(materia);
+
+            const headers = [
+                "CONTRATO",
+                "ALUNO",
+                "MATERIA",
+                "AULAS-MATERIA",
+                "AULAS-CONCLUIDAS",
+                "SITUACAO",
+                "AULAS-RECUPERADAS",
+                "AULAS-DIFERENCA",
+                "DATA-ACOMPANHAMENTO"
+            ];
+
+            data.push(headers);
+
+            Object.keys(App.Cadastros.contratos).forEach(contrato => {
+
+                const c = App.Cadastros.contratos[contrato];
+
+                c["MATERIAS"].forEach(materia => {
+
                     const arr = [];
-                    arr.push(contrato["CONTRATO"]);
-                    arr.push(contrato["ALUNO"]);
-                    matKeys.forEach((key, index) => {
-                        arr.push(matValues[index]);
-                    });
+
+                    arr.push(c["CONTRATO"]);
+                    arr.push(c["ALUNO"]);
+
+                    arr.push(materia["MATERIA"]);
+                    arr.push(materia["AULAS-MATERIA"]);
+                    arr.push(materia["AULAS-CONCLUIDAS"]);
+
+                    arr.push(c["Detalhes"]["SITUACAO"]);
+
+                    // Não existe no objeto original
+                    arr.push(c["Detalhes"]["AULAS-RECUPERADAS"] || 0);
+
+                    arr.push(c["Detalhes"]["AULAS-DIFERENCA"]);
+                    arr.push(c["Detalhes"]["DATA-ACOMPANHAMENTO"]);
+
                     data.push(arr);
+
                 });
-                //const values = Object.values(contrato);
+
             });
+
             return data;
         },
         andamento: () => {
@@ -501,7 +517,6 @@ const UI = {
 
             const headers = Object.keys(App.Cadastros.contratos[0])
                 .filter(x => !ignorar.includes(x));
-            //const headers = Object.keys(App.Cadastros.contratos[0]);
             data.push(headers);
             App.Cadastros.contratos.forEach(contrato => {
                 const values = Object.values(contrato);
@@ -534,7 +549,7 @@ const UI = {
         // Renderiza o datagrid:
         Render: () => {
             const data = UI.MainGrid[App.Cadastros.filtros.gridAtual]();
-            const guia = Utils.Text.toTitleCase(App.Cadastros.filtros.gridAtual);
+            const guia = App.Cadastros.filtros.gridAtual;
             const dataGrid = new PreparaGrid("DataGridElement", guia, data, document.getElementById("grid-content"),
                 x => console.log(x),
                 y => console.log(y)
@@ -951,8 +966,6 @@ document.getElementById("favicon").href = "./files/ico.svg";
 window.onerror = function (mensagem, arquivo, linha, coluna, erro) {
     App.HttpRequest.Post("e/rror", { msg: `/error", "Um erro ocorreu na aplicação:\n\n ${(event.reason?.stack || event.reason)}` });
     Tooltip.Toast("Ocorreu um erro na aplicação, acesse o menu Suporte > Logs, para mais detalhes", 5);
-    // retornar true impede o log padrão no console em alguns navegadores
-    return true;
 };
 
 window.addEventListener("unhandledrejection", function (event) {
@@ -989,7 +1002,7 @@ class PreparaGrid {
         const headers = sourceData[0];
         headers.forEach(header => {
             const head = document.createElement("data-grid-head");
-            head.textContent = Utils.Text.toTitleCase(header).replace("-", " ");
+            head.textContent = header;
             headersElement.append(head);
         });
         datagridElement.appendChild(headersElement);
@@ -1074,14 +1087,14 @@ class PreparaGrid {
                 Action: () => App.Logica.AlterarEducador(App.Cadastros.current)
             },
             {
-                Title: "Alterar Reposições",
+                Title: "+Reposição",
                 Ico: "files/settings.svg",
-                Action: () => App.Logica.AlterarQtdReposicoes(App.Cadastros.current)
+                Action: () => App.Logica.InserirReposicao(App.Cadastros.current)
             },
             {
-                Title: "Editar",
-                Ico: "files/edit.svg",
-                Action: () => App.Logica.EditarContrato(App.Cadastros.current)
+                Title: "+Dia de Folga",
+                Ico: "files/settings.svg",
+                Action: () => App.Logica.InserirFolga(App.Cadastros.current)
             }
         ]);
     }
