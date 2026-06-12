@@ -1,0 +1,60 @@
+{
+    "tmpDir": "data",
+    "dataDir": "data",
+    "devDir": "data",
+    "port": 9123,
+    "tokenSecret": "s3cr3tK3yabcdefF0rT0k3nS1gn1ng99",
+    "autoUpdate": false,
+    "updates": {
+        "version": 5,
+        "update": "31-05-2026",
+        "lasts": {
+            "31-05-2026": "31-05-2026",
+            "29-05-2026": "29-05-2026",
+            "28-05-2026": "28-05-2026",
+            "28-04-2026": "28-04-2026"
+        }
+    },
+    "login": {
+        "COORDENADOR": {
+            "token": "Y5rX1nV3Zq8B2mZK9T6A4uL0D7pFhJgC",
+            "passwd": "Prepara12!",
+            "role": "COORDENADOR"
+        },
+        "SECRETARIA": {
+            "token": "mQ7Z4T1xK9pC3hL8A2rV6nW5sZE0DgJ2",
+            "passwd": "Prepara12!",
+            "role": "SECRETARIA"
+        },
+        "JORGE SOUZA": {
+            "token": "cB5mN1X7A9pT3qZZ8hK4L2W6V0RrJgD5",
+            "passwd": "Prepara12!",
+            "role": "JORGE SOUZA"
+        },
+        "EDMUNDO": {
+            "token": "H4nZ8qP3CkR7X2T5yL9vW1m6oUZ0sJgD",
+            "passwd": "Prepara12!",
+            "role": "EDMUNDO SANTOS"
+        },
+        "JOICE": {
+            "token": "pR8X2vL7CqT4mN9ZZ1aU5yK6hD3B0sFJ",
+            "passwd": "Prepara12!",
+            "role": "JOICE LOPES"
+        },
+        "EDILEUSA": {
+            "token": "Z3mT7QpL9kW1xB5VnR4eA8ZsC6hY2D0u",
+            "passwd": "Prepara12!",
+            "role": "EDILEUSA CHAVES"
+        },
+        "VANUBIA": {
+            "token": "aK9xP2mQ7vZ1cL4rT8bY6nZW3hJ5uF0s",
+            "passwd": "Prepara12!",
+            "role": "NUBIA CARVALHO"
+        },
+        "TANIA": {
+            "token": "L5nV8qC3hT7X2mN9Z1aU4yK6hD0B0sFJ",
+            "passwd": "Prepara12!",
+            "role": "TANIA ANJOS"
+        }
+    }
+}

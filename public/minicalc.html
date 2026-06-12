@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Calculadora Analógica</title>
+    <style>
+        :root {
+            --bg-glass: rgba(15, 17, 22, 0.85);
+            --display-bg: #0a0d10;
+            --display-text: #00f0cc;
+            --display-glow: rgba(0, 240, 204, 0.5);
+            --history-text: #6b7c8a;
+            --border-glass: rgba(255, 255, 255, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #mini-calc {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 300px;
+            height: 150px;
+            z-index: 99999;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            user-select: none;
+            cursor: default;
+        }
+
+        #mini-calc.closing {
+            animation: fadeOut 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.85);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+        }
+
+        .display-container {
+            width: 100%;
+            height: 100%;
+            background: var(--display-bg);
+            border-radius: 12px;
+            border: 2px solid #151a20;
+            box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .display-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent);
+            pointer-events: none;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .history {
+            font-family: 'Courier New', 'Consolas', 'Menlo', monospace;
+            font-size: 13px;
+            color: var(--history-text);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-height: 20px;
+            line-height: 20px;
+            position: relative;
+            z-index: 2;
+            letter-spacing: 1px;
+        }
+
+        .result {
+            font-family: 'Courier New', 'Consolas', 'Menlo', monospace;
+            font-size: 38px;
+            font-weight: bold;
+            color: var(--display-text);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            z-index: 2;
+            letter-spacing: 2px;
+            text-shadow:
+                0 0 10px var(--display-glow),
+                0 0 20px var(--display-glow),
+                0 0 40px rgba(0, 240, 204, 0.3);
+            min-height: 45px;
+            line-height: 45px;
+        }
+
+        .result.error {
+            color: #ff5c5c;
+            text-shadow: 0 0 10px rgba(255, 92, 92, 0.6), 0 0 20px rgba(255, 92, 92, 0.3);
+            font-size: 28px;
+        }
+
+        .label {
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #3a4550;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        (function() {
+            let calcElement = null;
+            let calcVisible = false;
+            let isClosing = false;
+            let keydownHandler = null;
+
+            // Estado da calculadora
+            let currentInput = '0';
+            let expression = '';
+            let lastResult = null;
+            let justCalculated = false;
+            let error = false;
+
+            function createCalculator() {
+                if (calcElement && calcVisible) return;
+
+                if (isClosing && calcElement) {
+                    isClosing = false;
+                    calcElement.classList.remove('closing');
+                    calcVisible = true;
+                    updateDisplay();
+                    return;
+                }
+
+                if (calcElement) {
+                    calcElement.remove();
+                    calcElement = null;
+                }
+
+                // Resetar estado
+                currentInput = '0';
+                expression = '';
+                lastResult = null;
+                justCalculated = false;
+                error = false;
+                isClosing = false;
+
+                calcElement = document.createElement('div');
+                calcElement.id = 'mini-calc';
+                calcElement.innerHTML = `
+                    <div class="display-container">
+                        <span class="label">CALC</span>
+                        <div class="history"></div>
+                        <div class="result">0</div>
+                    </div>
+                `;
+
+                document.body.appendChild(calcElement);
+                calcVisible = true;
+
+                if (keydownHandler) {
+                    document.removeEventListener('keydown', keydownHandler, true);
+                }
+                keydownHandler = handleKeydown;
+                document.addEventListener('keydown', keydownHandler, true);
+
+                updateDisplay();
+                calcElement.setAttribute('tabindex', '-1');
+            }
+
+            function closeCalculator() {
+                if (!calcElement || isClosing) return;
+
+                isClosing = true;
+                calcVisible = false;
+
+                if (keydownHandler) {
+                    document.removeEventListener('keydown', keydownHandler, true);
+                    keydownHandler = null;
+                }
+
+                calcElement.classList.add('closing');
+                const el = calcElement;
+                setTimeout(() => {
+                    if (el && el.parentNode) {
+                        el.remove();
+                    }
+                    if (calcElement === el) {
+                        calcElement = null;
+                        isClosing = false;
+                    }
+                }, 280);
+            }
+
+            function updateDisplay() {
+                if (!calcElement) return;
+
+                const historyEl = calcElement.querySelector('.history');
+                const resultEl = calcElement.querySelector('.result');
+
+                // Atualizar histórico
+                if (expression || (!justCalculated && currentInput !== '0')) {
+                    historyEl.textContent = expression + (justCalculated ? '' : currentInput);
+                } else if (justCalculated && lastResult !== null) {
+                    historyEl.textContent = expression + formatNumber(lastResult);
+                } else {
+                    historyEl.textContent = '';
+                }
+
+                // Atualizar resultado
+                resultEl.classList.remove('error');
+                if (error) {
+                    resultEl.textContent = 'ERROR';
+                    resultEl.classList.add('error');
+                } else {
+                    resultEl.textContent = currentInput;
+                }
+            }
+
+            function formatNumber(num) {
+                if (typeof num !== 'number' || isNaN(num) || !isFinite(num)) return 'Error';
+                if (Number.isInteger(num) && Math.abs(num) < 1e12) {
+                    return num.toString();
+                }
+                let str = parseFloat(num.toPrecision(10)).toString();
+                if (str.length > 12) {
+                    str = num.toExponential(6);
+                }
+                return str;
+            }
+
+            function calculate() {
+                if (error) {
+                    resetAll();
+                    return;
+                }
+
+                let fullExpr = expression + (justCalculated && lastResult !== null ? formatNumber(lastResult) : currentInput);
+
+                // Limpar expressão
+                fullExpr = fullExpr.replace(/[^0-9+\-*/.()]/g, '');
+                if (!fullExpr) {
+                    lastResult = 0;
+                    currentInput = '0';
+                    expression = '';
+                    justCalculated = true;
+                    error = false;
+                    updateDisplay();
+                    return;
+                }
+
+                try {
+                    let result = eval(fullExpr);
+                    if (typeof result !== 'number' || !isFinite(result)) {
+                        throw new Error('Invalid');
+                    }
+                    let formatted = formatNumber(result);
+                    if (formatted === 'Error') throw new Error('Invalid');
+
+                    expression = fullExpr + '=';
+                    currentInput = formatted;
+                    lastResult = result;
+                    justCalculated = true;
+                    error = false;
+                } catch (e) {
+                    error = true;
+                    currentInput = '0';
+                    expression = '';
+                    lastResult = null;
+                    justCalculated = false;
+                }
+                updateDisplay();
+            }
+
+            function resetAll() {
+                currentInput = '0';
+                expression = '';
+                lastResult = null;
+                justCalculated = false;
+                error = false;
+                updateDisplay();
+            }
+
+            function appendNumber(num) {
+                if (error) {
+                    resetAll();
+                }
+                if (justCalculated) {
+                    currentInput = num;
+                    expression = '';
+                    lastResult = null;
+                    justCalculated = false;
+                } else {
+                    if (currentInput === '0' || currentInput === '-0') {
+                        currentInput = currentInput.replace('0', '') + num;
+                    } else if (currentInput.length < 12) {
+                        currentInput += num;
+                    }
+                }
+                updateDisplay();
+            }
+
+            function appendOperator(op) {
+                if (error) {
+                    resetAll();
+                    return;
+                }
+
+                if (justCalculated && lastResult !== null) {
+                    expression = formatNumber(lastResult) + op;
+                    currentInput = '0';
+                    justCalculated = false;
+                    lastResult = null;
+                } else {
+                    if (currentInput === '-' && currentInput.length === 1) {
+                        return; // Não adicionar operador após sinal negativo sozinho
+                    }
+                    expression += currentInput + op;
+                    currentInput = '0';
+                }
+                updateDisplay();
+            }
+
+            function appendDecimal() {
+                if (error) {
+                    resetAll();
+                }
+                if (justCalculated) {
+                    currentInput = '0.';
+                    expression = '';
+                    lastResult = null;
+                    justCalculated = false;
+                } else if (!currentInput.includes('.')) {
+                    currentInput += '.';
+                }
+                updateDisplay();
+            }
+
+            function toggleSign() {
+                if (error) return;
+                if (currentInput.startsWith('-')) {
+                    currentInput = currentInput.substring(1);
+                } else {
+                    currentInput = '-' + currentInput;
+                }
+                updateDisplay();
+            }
+
+            function handleKeydown(e) {
+                if (!calcVisible || isClosing || !calcElement) return;
+
+                const key = e.key;
+                const code = e.code;
+
+                // Ignorar se Ctrl, Alt ou Meta estiverem pressionados (exceto Escape)
+                if (e.ctrlKey || e.altKey || e.metaKey) {
+                    if (key === 'Escape') {
+                        // permitir
+                    } else {
+                        return;
+                    }
+                }
+
+                let handled = true;
+
+                switch (key) {
+                    case 'Escape':
+                        closeCalculator();
+                        break;
+                    case 'Delete':
+                    case 'Backspace':
+                        resetAll();
+                        break;
+                    case 'Enter':
+                    case '=':
+                        calculate();
+                        break;
+                    case '+':
+                        appendOperator('+');
+                        break;
+                    case '-':
+                        appendOperator('-');
+                        break;
+                    case '*':
+                        appendOperator('*');
+                        break;
+                    case '/':
+                        appendOperator('/');
+                        break;
+                    case '.':
+                    case ',':
+                        appendDecimal();
+                        break;
+                    case '0':
+                        appendNumber('0');
+                        break;
+                    case '1':
+                        appendNumber('1');
+                        break;
+                    case '2':
+                        appendNumber('2');
+                        break;
+                    case '3':
+                        appendNumber('3');
+                        break;
+                    case '4':
+                        appendNumber('4');
+                        break;
+                    case '5':
+                        appendNumber('5');
+                        break;
+                    case '6':
+                        appendNumber('6');
+                        break;
+                    case '7':
+                        appendNumber('7');
+                        break;
+                    case '8':
+                        appendNumber('8');
+                        break;
+                    case '9':
+                        appendNumber('9');
+                        break;
+                    default:
+                        handled = false;
+                        // Verificar teclado numérico
+                        if (code.startsWith('Numpad')) {
+                            handled = true;
+                            switch (code) {
+                                case 'Numpad0':
+                                    appendNumber('0');
+                                    break;
+                                case 'Numpad1':
+                                    appendNumber('1');
+                                    break;
+                                case 'Numpad2':
+                                    appendNumber('2');
+                                    break;
+                                case 'Numpad3':
+                                    appendNumber('3');
+                                    break;
+                                case 'Numpad4':
+                                    appendNumber('4');
+                                    break;
+                                case 'Numpad5':
+                                    appendNumber('5');
+                                    break;
+                                case 'Numpad6':
+                                    appendNumber('6');
+                                    break;
+                                case 'Numpad7':
+                                    appendNumber('7');
+                                    break;
+                                case 'Numpad8':
+                                    appendNumber('8');
+                                    break;
+                                case 'Numpad9':
+                                    appendNumber('9');
+                                    break;
+                                case 'NumpadAdd':
+                                    appendOperator('+');
+                                    break;
+                                case 'NumpadSubtract':
+                                    appendOperator('-');
+                                    break;
+                                case 'NumpadMultiply':
+                                    appendOperator('*');
+                                    break;
+                                case 'NumpadDivide':
+                                    appendOperator('/');
+                                    break;
+                                case 'NumpadDecimal':
+                                    appendDecimal();
+                                    break;
+                                case 'NumpadEnter':
+                                    calculate();
+                                    break;
+                                default:
+                                    handled = false;
+                            }
+                        }
+                }
+
+                if (handled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+
+            // Listener global para Ctrl+'
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && !e.altKey && !e.metaKey &&
+                    (e.key === "'" || e.code === 'Quote')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (calcVisible && !isClosing) {
+                        closeCalculator();
+                    } else {
+                        createCalculator();
+                    }
+                }
+            }, true);
+
+            // Observer para limpeza
+            const observer = new MutationObserver(() => {
+                if (calcElement && !document.body.contains(calcElement)) {
+                    calcElement = null;
+                    calcVisible = false;
+                    isClosing = false;
+                    if (keydownHandler) {
+                        document.removeEventListener('keydown', keydownHandler, true);
+                        keydownHandler = null;
+                    }
+                }
+            });
+            observer.observe(document.body, { childList: true });
+
+            console.log('🧮 Mini Calculadora pronta! Ctrl+\' para abrir, Esc para fechar.');
+        })();
+    </script>
+</body>
+</html>

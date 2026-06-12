@@ -1,3 +1,0 @@
-{
-  "msg": "/error\", \"Um erro assíncrono ocorreu na aplicação:\n\n TypeError: Failed to fetch\n    at http://localhost:9123/app.js:298:17\n    at new Promise (<anonymous>)\n    at Object.Post (http://localhost:9123/app.js:297:20)\n    at http://localhost:9123/app.js:957:21"
-}

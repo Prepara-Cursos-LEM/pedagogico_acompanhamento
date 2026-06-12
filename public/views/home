@@ -1,27 +1,77 @@
 <grid-column id="grid-column">
     <card-big class="no-elastic no-hover tools" style="width: fit-content; padding: 3px;">
-        <button-squared id="update-btn" style="background-color: #FB0;" onmouseover="Tooltip.Tooltip('Atualizar Acompanhamento', this)">
-            <span class="columns-icon" style="color: black; font-weight: bolder;">🗁</span>
+        <button-squared id="update-btn" style="background-color: var(--MediumBlue);" onmouseover="Tooltip.Tooltip('Quantidade de contratos', this)">
+            <span class="columns-icon" id="contracts-count" style="color: white; font-weight: bolder;">0</span>
         </button-squared>
+        <span style="display: flex; align-items: center; justify-content: center; background-color: var(--MediumBlue); padding: 5px 15px; border-radius: 5px;">
+            <label for="pesquisa-contratos" style="height: fit-content; width: fit-content; opacity: 0.75; color: white;">🔎︎</label>
+        </span>
+        <input type="text" name="" id="pesquisa-contratos" class="acacia-input" style="border: var(--MediumBlue) 1px solid;" placeholder="Pesquisa indisponível" disabled>
         <grid-row style="width: fit-content; background-color: var(--DarkBlue); padding: 5px; gap: 5px; height: 100%; border-radius: 5px;">
             <text-label>Acompanhamento:</text-label>
             <select id="atualizacoes" class="acacia-input"></select>
         </grid-row>
-        <button-squared onmouseover="Tooltip.Tooltip('Escolher colunas', this)">
-            <span class="columns-icon">☑</span>
-        </button-squared>
-        <button-squared id="print-btn" onmouseover="Tooltip.Tooltip('Gerar relatório dos selecionados', this)">
-            <span class="columns-icon">📝</span>
+        <button-squared id="print-btn" onmouseover="Tooltip.Tooltip('Gerar relatório dos contratos selecionados', this)">
+            <span class="columns-icon">🗒</span>
         </button-squared>
         <button-squared id="tools-refresh-btn" style="background-color: var(--SeaBlue);" onmouseover="Tooltip.Tooltip('Atualizar exibição', this)">
             <span class="columns-icon">⟳</span>
         </button-squared>
     </card-big>
     <acacia-tabs>
-        <acacia-tabs-item id="tab1" class="active">Andamento</acacia-tabs-item>
-        <acacia-tabs-item id="tab2">Acompanhamento</acacia-tabs-item>
-        <acacia-tabs-item id="tab3">Apostila</acacia-tabs-item>
+        <acacia-tabs-item id="tab-home" class="active" onmouseover="Tooltip.Tooltip('Dashboard | Últimos resumos', this)">🏠</acacia-tabs-item>
+        <acacia-tabs-item id="tab1" onmouseover="Tooltip.Tooltip('Pesquisar em todos os contratos', this)">CONTRATOS</acacia-tabs-item>
+        <acacia-tabs-item id="tab2" onmouseover="Tooltip.Tooltip('Atualizar acompanhamento semanal', this)">ACOMPANHAMENTO</acacia-tabs-item>
+        <acacia-tabs-item id="tab3" onmouseover="Tooltip.Tooltip('Relatórios | Exibição completa do andamento pedagógico', this)">RELATÓRIO</acacia-tabs-item>
+        <acacia-tabs-item id="tab4" onmouseover="Tooltip.Tooltip('(NÃO IMPLEMENTADO) | Controle de pedidos e entrega de apostilas', this)">LIVROS</acacia-tabs-item>
     </acacia-tabs>
-    <acacia-tabs-content id="grid-content">
+    <acacia-tabs-content id="grid-content" class="contractContainer">
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ffbb00" stroke-width="1">
+                <path d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20zm0 5c.55 0 1 .45 1 1v5a1 1 0 1 1-2 0V8c0-.55.45-1 1-1zm0 11a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z" />
+            </svg>
+            <span>Nenhum item selecionado ou nenhum cadastro existente.</span>
+            <span>Verifique os filtros ou a data de atualização. Cheque a conexão com o servidor.</span>
+        </div>
+
+        <div class="dashboard">
+
+            <!-- 4 cards estatísticos (métricas elegantes) -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">🟢 Em dias</div>
+                    <div class="stat-value">--<small class="obfuscated">/--</small></div>
+                    <div class="stat-trend"><span class="trend-up">--%</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">🟡 Atrasados</div>
+                    <div class="stat-value">--<small class="obfuscated">/--</small></div>
+                    <div class="stat-trend"><span class="trend-up">--%</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">🔴 Muito Atrasados</div>
+                    <div class="stat-value">--<small class="obfuscated">/--</small></div>
+                    <div class="stat-trend"><span class="trend-up">--%</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">🔵 Adiantados</div>
+                    <div class="stat-value">--<small class="obfuscated">/--</small></div>
+                    <div class="stat-trend"><span class="trend-up">--%</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">🟣 Muito Adiantados</div>
+                    <div class="stat-value">--<small class="obfuscated">/--</small></div>
+                    <div class="stat-trend"><span class="trend-up">--%</span></div>
+                </div>
+            </div>
+
+            <!-- Seção Gráfico + Atividades Recentes -->
+            <div class="main-content" id="main-content"></div>
+
+            <!-- rodapé discreto com gradiente de linha -->
+            <div style="display: flex; justify-content: center; margin-top: 0.2rem;">
+                <div style="height: 1px; width: 80px; background: var(--Gradiente90); opacity: 0.5; border-radius: 2px;"></div>
+            </div>
+        </div>
     </acacia-tabs-content>
 </grid-column>

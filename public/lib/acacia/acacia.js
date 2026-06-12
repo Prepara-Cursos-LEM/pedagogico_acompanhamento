@@ -633,7 +633,7 @@ export const Tooltip = {
         tooltip.style.display = 'block';
         element.addEventListener('mouseout', () => { try { document.body.removeChild(tooltip) } catch { } });
     },
-    Toast: (txt, close) => {
+    Toast: (txt, close = 3) => {
         try { document.body.removeChild(document.getElementById("toast-mini")) } catch { };
         let off = document.createElement("toast-mini");
         off.id = "toast-mini";

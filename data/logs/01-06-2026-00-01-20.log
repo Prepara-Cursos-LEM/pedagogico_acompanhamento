@@ -1,0 +1,9 @@
+{
+  "date": [
+    "01/06/2026",
+    "00:01:20"
+  ],
+  "flag": "error",
+  "msg": "Invalid password for role: COORDENADOR",
+  "error": null
+}

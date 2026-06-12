@@ -35,6 +35,13 @@ Educadores e coordenadores podem utilizar este app para fazer o acompanhamento p
 
 ## Instalação
 
+A instalação é feita em quatro passos simples:
+
+1. Baixar a pasta compacta .zip diretamente do GitHub da Prepara (não precisa de senha).
+2. Descompactar dentro da pasta Documentos.
+4. Instalar o serviço.
+5. Renomear o computador e copiar o link.
+
 A seguir o passo a passo para a instalação do app para quem já utilizou e teve de formatar o computador:
 
 1. Se você formatou o computador:
@@ -69,6 +76,7 @@ A seguir o passo a passo para a instalação do app para quem está utilizando p
 
 ## Cadastros
 
+
 ### Educador
 
 A
@@ -77,7 +85,7 @@ A
 
 A
 
-### Secretário
+### Secretaria
 
 A
 
@@ -98,6 +106,10 @@ A
 A
 
 ### Aulas
+
+A
+
+### Apostilas
 
 A
 
@@ -133,7 +145,23 @@ A
 
 A
 
+---
 
+## Ajuda
+
+A
+
+### Comparação de Acompanhamentos
+
+### Situação: SEM PROJEÇÃO e NÃO COMPUTÁVEL
+
+### Margem de tolerância e Taxa de atualização
+
+### Margem de Projeção
+
+### Aliases de Cabeçalhos
+
+---
 
 ## Solução de problemas
 

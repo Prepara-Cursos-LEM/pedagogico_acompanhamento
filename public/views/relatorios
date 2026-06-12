@@ -1,0 +1,268 @@
+<div class="report-container">
+    <header>
+        <h1>Relatório Acadêmico</h1>
+        <h2>Coordenação</h2>
+    </header>
+
+    <main>
+        <!-- Primeiro estudante -->
+        <article class="student-card">
+            <header class="student-header">
+                <h2 class="student-name">John Doe</h2>
+                <span class="teacher-label">Professor: James Doe</span>
+            </header>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Início</span>
+                    <span class="detail-value">01-01-2025</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Término</span>
+                    <span class="detail-value">12-12-2026</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Aulas Totais</span>
+                    <span class="detail-value">48</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Aulas Concluídas</span>
+                    <span class="detail-value">12</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Situação</span>
+                    <span class="detail-value situation-ok">OK</span>
+                </div>
+            </div>
+
+            <section class="notes-section">
+                <span class="notes-label">Notas</span>
+                <span class="notes-list">[7.5, 6.0, 5.5, 5.0, 8.0]</span>
+            </section>
+        </article>
+
+        <!-- Segundo estudante -->
+        <article class="student-card">
+            <header class="student-header">
+                <h2 class="student-name">Jena Doe</h2>
+                <span class="teacher-label">Professor: Paul Doe</span>
+            </header>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Início</span>
+                    <span class="detail-value">01-01-2023</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Término</span>
+                    <span class="detail-value">12-12-2025</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Aulas Totais</span>
+                    <span class="detail-value">60</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Aulas Concluídas</span>
+                    <span class="detail-value">48</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Situação</span>
+                    <span class="detail-value situation-late">Late</span>
+                </div>
+            </div>
+
+            <section class="notes-section">
+                <span class="notes-label">Notas</span>
+                <span class="notes-list">[7.5, 6.0, 5.5, 5.0, 8.0]</span>
+            </section>
+        </article>
+    </main>
+
+    <style>
+        /* Reset e configurações base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+            /* Cor de fundo suave para o navegador */
+            padding: 1rem;
+            counter-reset: student-counter;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                /* Fundo branco ao imprimir */
+                padding: 0;
+                color: black;
+                /* Garante contraste preto no branco */
+            }
+        }
+
+        .report-container {
+            max-width: 21cm;
+            /* Largura aproximada do A4 */
+            margin: 0 auto;
+            background-color: white;
+            /* Fundo branco do conteúdo */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            /* Sutil sombra para destaque */
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-align: lefts;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #eaecef;
+            background-color: #f8f9fa;
+            /* Leve destaque no cabeçalho */
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            letter-spacing: -0.5px;
+        }
+
+        .student-card {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #eaecef;
+            /* Linha divisória sutil */
+            page-break-inside: avoid;
+            /* Evita quebra de página dentro do cartão */
+            position: relative;
+        }
+
+        .student-card:last-of-type {
+            border-bottom: none;
+            /* Remove borda do último item */
+        }
+
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed #dee2e6;
+            /* Linha inferior sutil */
+        }
+
+        .student-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .teacher-label {
+            font-size: 1rem;
+            color: #7f8c8d;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            /* Flexível para telas pequenas */
+            gap: 1rem 2rem;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .situation-ok {
+            color: #27ae60;
+            /* Verde para situação OK */
+            font-weight: 600;
+        }
+
+        .situation-late {
+            color: #e74c3c;
+            /* Vermelho para situação Late */
+            font-weight: 600;
+        }
+
+        .notes-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #dee2e6;
+            /* Linha superior para separar notas */
+        }
+
+        .notes-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .notes-list {
+            display: inline-block;
+            /* Mantém notas juntas */
+            font-size: 1rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #eaecef;
+            background-color: #f8f9fa;
+            /* Leve destaque no rodapé */
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        @media print {
+
+            body,
+            .report-container {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .student-card {
+                page-break-inside: avoid;
+            }
+        }
+
+        @page {
+            margin: 1cm;
+            /* Margens de impressão */
+        }
+    </style>
+</div>

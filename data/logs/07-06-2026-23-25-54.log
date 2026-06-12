@@ -1,0 +1,9 @@
+{
+  "date": [
+    "07/06/2026",
+    "23:25:54"
+  ],
+  "flag": "error",
+  "msg": "ELSE: Erro ao ler o arquivo XLSX",
+  "error": null
+}

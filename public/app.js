@@ -11,8 +11,7 @@ const Modal = window.Modal;
 /** @type {typeof import("./lib/acacia/acacia").Tooltip} */
 const Tooltip = window.Tooltip;
 
-const appURL = `${window.location.origin}/app`;
-console.log("appURL:", appURL);
+const appURL = `${window.location.origin}`;
 
 let index = 0;
 let appStatus;
@@ -21,46 +20,53 @@ const App = {
     Usuarios: [],
     Cadastros: {
         current: {},
-        selection: [],
         selectionCount: 0,
         sourceLength: 0,
         allSelected: false,
-        contratos: [],
+        source: {},
+        contratos: {},
+        previous: {},
+        selection: [],
         filtros: {
-            gridAtual: "andamento",
-            //actualGrid: "andamento",
-            //actualGrid: "apostila",
+            guiaAtual: "DASHBOARD",
+            //guiaAtual: "GERAL",
+            //guiaAtual: "ANDAMENTO",
+            //guiaAtual: "LIVROS",
             colunas: [],
             situacao: {
-                filtrar: "TUDO", classificar: "MAIOR"
+                filtrar: "TUDO"
             },
             educador: {
-                filtrar: "TODOS", classificar: "MAIOR"
+                filtrar: "TODOS"
             },
-            contrato: {
-                filtrar: "TUDO", classificar: "MAIOR"
+            dias: {
+                filtrar: "SEGUNDA"
             },
         }
     },
     Precarregamento: async () => {
         const urlQuery = new URLSearchParams(window.location.search);
-        console.log("URL Query Parameters:", urlQuery);
         const role = urlQuery.get("role");
         if (!role) {
             return alert("Usuário não autenticado.");
-        } else if (role === "COORDENADOR") {
+        } else if (role == "COORDENADOR") {
             await UI.StatusBar.Coordenador();
-        } else if (role === "SECRETARIA") {
+        } else if (role == "SECRETARIA") {
             await UI.StatusBar.Secretaria();
+        } else if (role == "EDUCADOR") {
+            await UI.StatusBar.Educador();
         } else if (role && role.length > 1) {
             await UI.StatusBar.Educador();
         }
         //
         APPVIEW.style.overflow = "hidden";
+        window.emptyState = document.getElementById("empty-state");
+        document.getElementById("favicon").href = "./files/ico.svg";
+        console.log("appURL:", appURL);
     },
     Main: async (callback = null) => {
         await App.Precarregamento();
-        console.log("App started");
+        const emptyState = document.getElementById("empty-state");
         // Lógica de inicialização aqui:
         // Remover a logo nativa:
         document.getElementById("topbar-logo").src = "files/ico.svg";
@@ -68,27 +74,34 @@ const App = {
         await App.Logica.AtualizarUsuarios();
         await App.Logica.AtualizarCadastros();
         // Barra de status:
-        UI.MainGrid.Render();
-        const tabAndamento = document.getElementById("tab1");
-        const tabAcompanhamento = document.getElementById("tab2");
-        const tabApostila = document.getElementById("tab3");
-
-        tabAndamento.addEventListener("click", () => {
-            App.Cadastros.filtros.gridAtual = "andamento";
-            UI.MainGrid.Render();
-        });
-
-        tabAcompanhamento.addEventListener("click", () => {
-            App.Cadastros.filtros.gridAtual = "acompanhamento";
-            UI.MainGrid.Render();
-        });
-
-        tabApostila.addEventListener("click", () => {
-            App.Cadastros.filtros.gridAtual = "apostila";
-            UI.MainGrid.Render();
-        });
-
         //
+        const tabDashboard = document.getElementById("tab-home");
+        const tabGeral = document.getElementById("tab1");
+        const tabAndamento = document.getElementById("tab2");
+        const tabRelatorios = document.getElementById("tab3");
+        const tabLivros = document.getElementById("tab4");
+
+        tabDashboard.addEventListener("click", () => window.location.reload());
+
+        tabGeral.addEventListener("click", x => {
+            App.Cadastros.filtros.guiaAtual = "Geral";
+            UI.MainGrid.Render();
+        });
+        tabAndamento.addEventListener("click", x => {
+            App.Cadastros.filtros.guiaAtual = "Andamento";
+            UI.MainGrid.Render();
+        });
+        tabRelatorios.addEventListener("click", x => {
+            Tooltip.Toast("Funcionalidade RELATÓRIOS ainda não implementada.", 5);
+            // App.Cadastros.filtros.guiaAtual = "Livros";
+            // UI.MainGrid.Render();
+        });
+        tabLivros.addEventListener("click", x => {
+            Tooltip.Toast("Funcionalidade LIVROS ainda não implementada.", 5);
+            // App.Cadastros.filtros.guiaAtual = "Livros";
+            // UI.MainGrid.Render();
+        });
+
         // Finalização da inicialização:
         document.getElementById("tools-refresh-btn").onclick = async e => {
             e.preventDefault();
@@ -97,25 +110,24 @@ const App = {
                 window.location.reload();
             }
         };
-        document.getElementById("print-btn").onclick = () => {
+        document.getElementById("print-btn").onclick = async () => {
+            if (App.Cadastros.selectionCount == 0) {
+                let res = await Modal.Confirm("Dados insuficientes", "Nenhum item selecionado para impressão.");
+                return;
+            } else if (App.Cadastros.selectionCount > 100) {
+                let res = await Modal.Confirm("Dados em excesso", "Uma quantidade muito grande de dados foi selecionada para impressão. Isso pode travar seu navegador. Experimente alterar os filtros para reduzir a quantidade de itens. Continuar assim mesmo?");
+                if (!res) return;
+            }
             localStorage.setItem("print-dados", JSON.stringify(App.Cadastros.selection));
             window.open("print.html", "_blank");
         };
         document.getElementById("update-btn").onclick = () => {
-            const modalText = `
-            Realizar um novo acompanhamento? O Acompanhamento anterior será arquivado
-            e poderá ser verificado selecionando na caixa de seleção ao lado.
-            Para realizar o acompanhamento é necessário haver baixado previamente
-            as planilhas de Controle Pedagógico e Segmentação Aluno Educador.
-            Para saber como exportar as planilhas do Hub clique no menu e selecione
-            Suporte.
-            `;
-            Modal.Confirm("Novo Acompanhamento", modalText).then(response => {
-                if (response) {
-                    UI.CarregarPlanilhas();
-                }
-            });
-        }
+            const cont = Object.keys(App.Cadastros.selection).length;
+            document.getElementById("contracts-count").textContent = cont;
+            Tooltip.Toast(cont + " contratos selecionados pelo filtro atual.", 5);
+        };
+        const cont = Object.keys(App.Cadastros.selection).length;
+        document.getElementById("contracts-count").textContent = cont;
         appStatus = document.getElementById("app-status");
         if (callback) callback();
     },
@@ -166,58 +178,45 @@ const App = {
     },
     Logica: {
         Andamento: async (contrato) => {
-            const { TOTALSEMANAS, SEMANASCONCLUIDAS, SALDOAULAS, REPOSICOES, DIASVERIFICADOS, VERIFICAR, MATERIA_SITUACAOANDAMENTO, MATERIA_DATAINICIO, MATERIA_DATATERMINO } = contrato;
-
-            function calc(aulas) {
-                if (saldoAulas < -12) return "🟥 Muito adiantado";
-                if (saldoAulas < -6) return "🟦 Adiantado";
-                if (saldoAulas < 0) return "🟨 Atrasado";
-                if (saldoAulas >= 0) return "🟩 Em dias";
-                if (saldoAulas > 6) return "🟨 Atrasado";
-                if (saldoAulas > 12) return "🟥 Muito atrasado";
-            };
-            const result = { aulas, situacao }
-            result.aulas = saldoAulas;
-            result.situacao = calc(aulas);
-            return result;
+            Tooltip.Toast("Atualizando Central de Andamento de Alunos", 5);
         },
+        /**
+         * Obtém os dados de todos os usuários do sistema
+         * @returns 
+         */
         AtualizarUsuarios: async () => {
-            App.Usuarios = await App.HttpRequest.Get("/app/usuarios");
+            App.Usuarios = await App.HttpRequest.Get("/app/update/usuarios");
             // Barra de ferramentas:
             const tools = UI.Tools.Render();
             TOPBAR.appendChild(tools);
-
         },
+        /**
+         * Obtém os dados de todos os contratos
+         * @returns {any} { cadastros, atualizacoes }
+         */
         AtualizarCadastros: async () => {
-            const { cadastros, atualizacoes } = await App.HttpRequest.Get("/app/cadastros");
-            App.Cadastros.contratos = cadastros;
+            const { cadastros, atualizacoes } = await App.HttpRequest.Get("/app/update/cadastros");
+            if (!cadastros || cadastros.length == 0) return;
             let atualizaSelect = document.getElementById("atualizacoes");
             atualizaSelect.innerHTML = "";
             const option1 = document.createElement("option");
             option1.value = atualizacoes.update;
-            option1.textContent = "Atual";
+            option1.textContent = "Último";
             atualizaSelect.appendChild(option1);
             Object.keys(atualizacoes.lasts).forEach(x => {
+                if (x == atualizacoes.update) return;
                 const option2 = document.createElement("option");
                 option2.value = x;
                 option2.textContent = x;
                 atualizaSelect.appendChild(option2);
             });
-            UI.MainGrid.Render();
-        },
-        CopiarNContrato: () => {
-            const resultado = App.Cadastros.current;
-            const contrato = resultado["CONTRATO"];
-            const input = document.createElement("textarea");
-            input.value = contrato;
-            input.style.position = "absolute";
-            input.style.left = "-9999px";
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand("copy");
-            input.remove();
-            Tooltip.Toast("Número do contrado copiado: " + contrato, 5);
-            return contrato;
+
+            Object.keys(cadastros).forEach((key, index) => {
+                App.Cadastros.source[`C-${index + 1}`] = cadastros[key];
+            });
+            App.Cadastros.contratos = App.Cadastros.source;
+            App.Cadastros.selection = App.Cadastros.source;
+            UI.Home.DashBoard();
         },
         CopiarNome: () => {
             const resultado = App.Cadastros.current;
@@ -281,8 +280,12 @@ const App = {
             Tooltip.Toast("Contrato selecionado: " + resultado["Contrato"] + "<br>Nome: " + resultado["Aluno"], 7);
             //
         },
-        GravarAlteracoes: () => {
+        GravarAlteracoes: (alteracoes = {}) => {
+            // Lógica das alterações:
             //
+            // Aplicar alterações
+            App.Cadastros.contratos = alteracoes;
+            const res = Utils.Save(App.Cadastros.contratos);
         },
     },
     HttpRequest: {
@@ -309,11 +312,21 @@ const App = {
                     body: JSON.stringify(data)
                 }).then(res => {
                     if (!res.ok) {
+                        console.log(res);
                         reject(new Error(`HTTP error! status: ${res.status}`));
                     } else {
-                        res.json().then(data => resolve(data)).catch(err => reject(err));
+                        res.json().then(data => {
+                            console.log(data);
+                            resolve(data);
+                        }).catch(err => {
+                            console.log(err);
+                            reject(err);
+                        });
                     }
-                }).catch(err => reject(err));
+                }).catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
             });
         },
     },
@@ -398,6 +411,9 @@ const App = {
                 sessionStorage.setItem("history", version);
                 await App.Logica.AtualizarUsuarios();
                 await App.Logica.AtualizarCadastros();
+                await Modal.Message("Atualização", "Novos dados foram carregados remotamente. Atualize a página para aplicar as alterações.", () => {
+                    window.location.reload();
+                });
             }
         }).catch(err => {
             App._pooling = false;
@@ -405,7 +421,7 @@ const App = {
                 {} :
                 Modal.Message(
                     "Erro",
-                    "Não foi possível se comunicar com o servidor.",
+                    "Não foi possível se comunicar com o servidor." + err,
                     () => window.location.reload()
                 );
         });
@@ -413,158 +429,496 @@ const App = {
 };
 
 const UI = {
-    Menu: {
-        Render: async (items = []) => { },
-    },
     MainGrid: {
-        colunas: {
-            acompanhamento: [
-                "NOME",
-                "AULASCURSO",
-                "PREVISAOINICIO",
-                "PREVISAOTERMINO",
-                "AULASCONCLUIDAS",
-                "CODIGOAPOSTILA",
-                "ENTREGAAPOSTILA",
-                "HORASAGENDAMENTO",
-                "SALDOAULAS",
-                "SALDOCONTRATO",
-                "STATUS",
-                "AULASPLANEJADAS",
-                "AULASRECUPERADAS",
-                "ATRASO",
-                "SITUACAOANDAMENTO",
-                "DATAINICIO",
-                "DATATERMINO",
-            ],
-            andamento: [
-                "CONTRATO",
-                "ALUNO",
-                "STATUS",
-                "EDUCADOR",
-                "MATERIAATUAL",
-                "PROXIMAMATERIA",
-                "INICIOCONTRATO",
-                "TERMINOCONTRATO",
-                "TOTALSEMANAS",
-                "SEMANASCONCLUIDAS",
-                "SALDOAULAS",
-                "REPOSICOES",
-                "PARCELAS",
-                "DATAACOMPANHAMENTO",
-                "DIASVERIFICADOS",
-                "VERIFICAR",
-            ],
-            apostila: [
-                "AULASCONCLUIDAS",
-                "PROXIMAMATERIA",
-                "SEM CÓDIGO",
-                "ENTREGUE",
-                "CÓD. CADASTRADO",
-            ]
-        },
-        acompanhamento: () => {
-            const data = [];
-
-            const headers = [
-                "CONTRATO",
-                "ALUNO",
-                "MATERIA",
-                "AULAS-MATERIA",
-                "AULAS-CONCLUIDAS",
-                "SITUACAO",
-                "AULAS-RECUPERADAS",
-                "AULAS-DIFERENCA",
-                "DATA-ACOMPANHAMENTO"
-            ];
-
-            data.push(headers);
-
-            Object.keys(App.Cadastros.contratos).forEach(contrato => {
-
-                const c = App.Cadastros.contratos[contrato];
-
-                c["MATERIAS"].forEach(materia => {
-
-                    const arr = [];
-
-                    arr.push(c["CONTRATO"]);
-                    arr.push(c["ALUNO"]);
-
-                    arr.push(materia["MATERIA"]);
-                    arr.push(materia["AULAS-MATERIA"]);
-                    arr.push(materia["AULAS-CONCLUIDAS"]);
-
-                    arr.push(c["Detalhes"]["SITUACAO"]);
-
-                    // Não existe no objeto original
-                    arr.push(c["Detalhes"]["AULAS-RECUPERADAS"] || 0);
-
-                    arr.push(c["Detalhes"]["AULAS-DIFERENCA"]);
-                    arr.push(c["Detalhes"]["DATA-ACOMPANHAMENTO"]);
-
-                    data.push(arr);
-
-                });
-
-            });
-
-            return data;
-        },
-        andamento: () => {
-            const data = [];
-            const ignorar = ["MATERIAS", "ENTREGA-FISICA", "CODIGO-APOSTILA", "Detalhes"];
-
-            const headers = Object.keys(App.Cadastros.contratos[0])
-                .filter(x => !ignorar.includes(x));
-            data.push(headers);
-            App.Cadastros.contratos.forEach(contrato => {
-                const values = Object.values(contrato);
-                const arr = [];
-                headers.forEach((key, index) => arr.push(values[index]));
-                data.push(arr);
-            });
-            return data;
-        },
-        apostila: () => {
-            App.Cadastros.filtros.gridAtual = "apostila";
-            const data = [];
-            const headers = Object.keys(App.Cadastros.contratos[0]);
-            data.push(headers);
-            App.Cadastros.contratos.forEach(contrato => {
-                const keys = Object.keys(contrato);
-                const values = Object.values(contrato);
-                const arr = [];
-                keys.forEach((key, index) => {
-                    if (key != "MATERIAS") {
-                        arr.push(values[index]);
+        Helpers: {
+            filtrar: () => {
+                App.Cadastros.selection = App.Cadastros.contratos;
+                const filtro = {
+                    situacao: App.Cadastros.filtros.situacao.filtrar,
+                    educador: App.Cadastros.filtros.educador.filtrar,
+                    dias: App.Cadastros.filtros.dias.filtrar
+                }
+                const test = {
+                    a: App.Cadastros.filtros.dias.filtrar == "TUDO",
+                    b: App.Cadastros.filtros.situacao.filtrar == "TUDO",
+                    c: App.Cadastros.filtros.educador.filtrar == "TODOS",
+                }
+                if (Object.values(test).every(x => x)) {
+                    App.Cadastros.selection = App.Cadastros.contratos;
+                    const container = document.getElementById("grid-content");
+                    container.innerHTML = "";
+                    Tooltip.Toast("Carregando todos os contratos...", 3);
+                    container.innerHTML = "";
+                    setTimeout(() => {
+                        UI.MainGrid.Helpers.render(App.Cadastros.contratos);
+                    }, 2000);
+                } else {
+                    App.Cadastros.selection = Utils.Filter(App.Cadastros.contratos, filtro);
+                    if (Object.keys(App.Cadastros.selection).length > 0) {
+                        UI.MainGrid.Helpers.render(App.Cadastros.selection);
                     } else {
-
+                        UI.MainGrid.Helpers.render({});
                     }
-                });
-                data.push(arr);
-            });
-            UI.MainGrid.Render(data);
+                }
+                document.getElementById("contracts-count").textContent = Object.keys(App.Cadastros.selection).length;
+            },
+            render: (obj = {}) => {
+                const keys = Object.keys(obj);
+                // 
+                document.getElementById("grid-content").innerHTML = "";
+                if (keys.length > 0) {
+                    keys.forEach(key => {
+                        const tmp = {
+                            id: key,
+                            aluno: obj[key]["ALUNOS"],
+                            educador: obj[key]["EDUCADOR"],
+                            inicioContrato: Utils.SerialToDate(Number(obj[key]["DATA INICIO"])),
+                            fimContrato: Utils.SerialToDate(Number(obj[key]["DATA TERMINO"])),
+                            diaSemana: Utils.DayOfWeek(Number(obj[key]["DIA SEMANA"])),
+                            aulasTotais: obj[key]["AULAS CURSO"],
+                            aulasConcluidas: obj[key]["AULAS CONCLUIDAS"],
+                            aulasAtrasadas: Math.round(Number(obj[key]["AULAS ATRASADAS"])),
+                            dataAcompanhamento: Utils.SerialToDate(Number(obj[key]["DATA ACOMPANHAMENTO"])),
+                            situacao: obj[key]["SITUAÇÃO"],
+                            verificacao: obj[key]["VERIFICAÇÃO"],
+                        }
+                        Grid.cardGen(tmp);
+                    });
+                } else {
+                    emptyState.style.display = "flex";
+                    document.getElementById("grid-content").appendChild(emptyState);
+                }
+            },
+            pesquisar: e => {
+                if (e.key == "Enter") {
+                    const container = document.getElementById("grid-content");
+                    container.innerHTML = "";
+                    const pesquisa = document.getElementById("pesquisa-contratos");
+                    const text = pesquisa.value.trim();
+                    if (text.length == 0) {
+                        if (App.Cadastros.selection.length > 0) UI.MainGrid.Helpers.render(App.Cadastros.selection);
+                    } else {
+                        const matriz = App.Cadastros.contratos.map(contrato => contrato["ALUNOS"]);
+                        const res = Utils.buscaInteligente(matriz, text).map(r => r.distancia < 11 ? r.valor : null).filter(r => r != null);
+                        // Adicionar também nomes que contenham o texto:
+                        const nomesIniciados = matriz.filter(
+                            valor => clear(valor || "").startsWith(clear(text || ""))
+                        );
+
+                        res.push(...nomesIniciados);
+
+                        function clear(txt = "") {
+                            return txt.toLowerCase()
+                                .trim()
+                                .normalize("NFD")
+                                .replace(/[\u0300-\u036f]/g, "")
+                                .replace(/\s+/g, "");
+                        }
+                        App.Cadastros.selection = App.Cadastros.contratos.filter(contrato => res.includes(contrato["ALUNOS"]));
+                        if (App.Cadastros.selection.length > 0) {
+                            container.innerHTML = "";
+                            UI.MainGrid.Helpers.render(App.Cadastros.selection);
+                        }
+                    }
+                }
+            },
+            selectsEvents: () => {
+                const pesquisa = document.getElementById("pesquisa-contratos");
+                pesquisa.placeholder = "Pesquisar contratos...";
+                pesquisa.removeAttribute("disabled");
+                pesquisa.focus();
+                document.getElementById("select-dia").value = App.Cadastros.filtros.dias.filtrar;
+                document.getElementById("select-situacao").value = App.Cadastros.filtros.situacao.filtrar;
+                document.getElementById("select-educador").value = App.Cadastros.filtros.educador.filtrar;
+
+                const container = document.getElementById("grid-content");
+                container.innerHTML = "";
+                pesquisa.onkeydown = UI.MainGrid.Helpers.pesquisar;
+
+                document.getElementById("select-dia").onchange = () => {
+                    const value = document.getElementById("select-dia").value;
+                    App.Cadastros.filtros.dias.filtrar = value;
+                    UI.MainGrid.Helpers.filtrar();
+                };
+                document.getElementById("select-situacao").onchange = () => {
+                    // 
+                    const value = document.getElementById("select-situacao").value;
+                    App.Cadastros.filtros.situacao.filtrar = value;
+                    UI.MainGrid.Helpers.filtrar();
+                };
+                document.getElementById("select-educador").onchange = () => {
+                    // 
+                    const value = document.getElementById("select-educador").value;
+                    App.Cadastros.filtros.educador.filtrar = value;
+                    UI.MainGrid.Helpers.filtrar();
+                };
+            },
         },
-        // Renderiza o datagrid:
-        Render: () => {
-            const data = UI.MainGrid[App.Cadastros.filtros.gridAtual]();
-            const guia = App.Cadastros.filtros.gridAtual;
-            const dataGrid = new PreparaGrid("DataGridElement", guia, data, document.getElementById("grid-content"),
-                x => console.log(x),
-                y => console.log(y)
-            );
-            //
+        Geral: () => {
+            App.Cadastros.contratos = App.Cadastros.source;
             const tabs = document.querySelectorAll('acacia-tabs-item');
             tabs.forEach((tab, index) => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                });
+                tab.classList.remove('active');
             });
+            document.getElementById("tab1").classList.add("active");
+            //
+
+            // Lógica da Aba:
+            Tooltip.Toast("Carregando dados...", 3);
+
+            // Renderização inicial:
+            UI.MainGrid.Helpers.selectsEvents();
+            UI.MainGrid.Helpers.filtrar();
+            return;
+        },
+        Andamento: () => {
+            App.Cadastros.contratos = {};
+            App.Cadastros.selection = {};
+            App.Cadastros.filtros.dias.filtrar = "TUDO";
+            App.Cadastros.filtros.situacao.filtrar = "TUDO";
+            App.Cadastros.filtros.educador.filtrar = "TODOS";
+            //
+            Object.keys(App.Cadastros.source).forEach(key => {
+                if (App.Cadastros.source[key]["VERIFICAÇÃO"] != "VERIFICADO") App.Cadastros.contratos[key] = App.Cadastros.source[key];
+            });
+            const tabs = document.querySelectorAll('acacia-tabs-item');
+            tabs.forEach((tab, index) => {
+                tab.classList.remove('active');
+            });
+            document.getElementById("tab2").classList.add("active");
+
+            // Lógica da Aba:
+            const pesquisa = document.getElementById("pesquisa-contratos");
+            pesquisa.placeholder = "Pesquisar contratos...";
+            pesquisa.removeAttribute("disabled");
+            pesquisa.focus();
+            document.getElementById("select-dia").value = App.Cadastros.filtros.dias.filtrar;
+            document.getElementById("select-situacao").value = App.Cadastros.filtros.situacao.filtrar;
+            document.getElementById("select-educador").value = App.Cadastros.filtros.educador.filtrar;
+            //
+            Tooltip.Toast("Carregando contratos não atualizados...", 3);
+
+            // Renderização inicial:
+            UI.MainGrid.Helpers.selectsEvents();
+            UI.MainGrid.Helpers.filtrar();
+            return;
+        },
+        Relatorios: () => {
+            const tabs = document.querySelectorAll('acacia-tabs-item');
+            tabs.forEach((tab, index) => {
+                tab.classList.remove('active');
+            });
+            document.getElementById("tab3").classList.add("active");
+            Renderer.Load("relatorios", document.getElementById("main-content"));
+        },
+        Livros: () => {
+            Modal.Message("Não implementado", "Funcionalidade de controle de entrega de livros ainda não implementada.", () => {
+                window.location.reload();
+            });
+            return;
+            const tabs = document.querySelectorAll('acacia-tabs-item');
+            tabs.forEach((tab, index) => {
+                tab.classList.remove('active');
+            });
+            document.getElementById("tab4").classList.add("active");
+        },
+        Render: () => {
+            UI.MainGrid[App.Cadastros.filtros.guiaAtual]();
         }
     },
-    Home: {},
+    Home: {
+        DashBoard: async () => {
+            App.Cadastros.filtros.guiaAtual = "Dashboard";
+            const tabs = document.querySelectorAll('acacia-tabs-item');
+            tabs.forEach((tab, index) => {
+                tab.classList.remove('active');
+            });
+            document.getElementById("tab-home").classList.add("active");
+            const pesquisa = document.getElementById("pesquisa-contratos");
+            pesquisa.placeholder = "Pesquisa indisponivel.";
+            pesquisa.setAttribute("disabled", true);
+
+            App.HttpRequest.Get("/app/update/dashboard").then(data => {
+                // Extraindo os dados reais:
+                resumo.mesAtual = data.mesAtual;
+                resumo.mesAnterior = data.mesAnterior;
+                // Dados de exemplo para o gráfico:
+                const contractData = {
+                    "Anterior": {
+                        "Total de Contratos": resumo.mesAnterior.geral.totalAlunos,
+                        "Em Dias": resumo.mesAnterior.geral.totalEmDias,
+                        "Atrasado": resumo.mesAnterior.geral.totalAtrasados,
+                        "Muito Atrasado": resumo.mesAnterior.geral.totalMuitoAtrasados,
+                        "Adiantado": resumo.mesAnterior.geral.totalAdiantados,
+                        "Muito Adiantado": resumo.mesAnterior.geral.totalMuitoAdiantados
+                    },
+                    "Atual": {
+                        "Total de Contratos": resumo.mesAtual.geral.totalAlunos,
+                        "Em Dias": resumo.mesAtual.geral.totalEmDias,
+                        "Atrasado": resumo.mesAtual.geral.totalAtrasados,
+                        "Muito Atrasado": resumo.mesAtual.geral.totalMuitoAtrasados,
+                        "Adiantado": resumo.mesAtual.geral.totalAdiantados,
+                        "Muito Adiantado": resumo.mesAtual.geral.totalMuitoAdiantados
+                    }
+                };
+
+                // Renderização dos cards:
+                const statsContainer = document.querySelector(".stats-grid");
+                function generateStatCard(title, value, trend, total) {
+                    const html = `
+                    <div class="stat-card">
+                        <div class="stat-title">${title}</div>
+                        <div class="stat-value">${value}<small class="obfuscated">/${total}</small></div>
+                        <div class="stat-trend"><span class="trend-up">${trend}</span></div>
+                    </div>`;
+                    // Generate element:
+                    const statElement = document.createElement("div");
+                    statElement.innerHTML = html;
+                    return statElement;
+                }
+                statsContainer.innerHTML = "";
+                const total = resumo.mesAtual.geral.totalAlunos;
+                // Em dias:
+                const totalEmDias = resumo.mesAtual.geral.totalEmDias;
+                let percent = "Percentual: " + ((totalEmDias / total) * 100).toFixed(0) + "%";
+                statsContainer.appendChild(generateStatCard("🟩 Em Dias", totalEmDias, percent, total));
+                // Atrasados:
+                const totalAtrasados = resumo.mesAtual.geral.totalAtrasados;
+                percent = "Percentual: " + ((totalAtrasados / total) * 100).toFixed(0) + "%";
+                statsContainer.appendChild(generateStatCard("🟨 Atrasados", totalAtrasados, percent, total));
+                // Muito Atrasados:
+                const totalMuitoAtrasados = resumo.mesAtual.geral.totalMuitoAtrasados;
+                percent = "Percentual: " + ((totalMuitoAtrasados / total) * 100).toFixed(0) + "%";
+                statsContainer.appendChild(generateStatCard("🟥 Muito Atrasados", totalMuitoAtrasados, percent, total));
+                // Adiantados:
+                const totalAdiantados = resumo.mesAtual.geral.totalAdiantados;
+                percent = "Percentual: " + ((totalAdiantados / total) * 100).toFixed(0) + "%";
+                statsContainer.appendChild(generateStatCard("🟦 Adiantados", totalAdiantados, percent, total));
+                // Muito Adiantados:
+                const totalMuitoAdiantados = resumo.mesAtual.geral.totalMuitoAdiantados;
+                percent = "Percentual: " + ((totalMuitoAdiantados / total) * 100).toFixed(0) + "%";
+                statsContainer.appendChild(generateStatCard("🟪 Muito Adiantados", totalMuitoAdiantados, percent, total));
+
+                // Renderização do gráfico de progresso mensal:
+                {
+                    // Renderização dos gráficos:
+
+                    const mainContent = document.getElementById("main-content");
+                    mainContent.innerHTML = "";
+
+                    // Categorias a serem exibidas
+                    const rawCategories = [
+                        "Em Dias",
+                        "Atrasado",
+                        "Muito Atrasado",
+                        "Adiantado",
+                        "Muito Adiantado"
+                    ];
+
+                    // Labels amigáveis
+                    const displayLabels = {
+                        "Em Dias": "🟩 Em Dias",
+                        "Atrasado": "🟨 Atrasados",
+                        "Muito Atrasado": "🟥 Muito Atrasados",
+                        "Adiantado": "🟦 Adiantados",
+                        "Muito Adiantado": "🟪 Muito Adiantados"
+                    };
+
+                    // Cores
+                    const COLORS = {
+                        ANTERIOR: "var(--LightGreen)",
+                        ATUAL: "var(--SeaBlue)"
+                    };
+
+                    function createContractData(anterior, atual) {
+                        return {
+                            "Anterior": {
+                                "Em Dias": anterior.totalEmDias,
+                                "Atrasado": anterior.totalAtrasados,
+                                "Muito Atrasado": anterior.totalMuitoAtrasados,
+                                "Adiantado": anterior.totalAdiantados,
+                                "Muito Adiantado": anterior.totalMuitoAdiantados
+                            },
+                            "Atual": {
+                                "Em Dias": atual.totalEmDias,
+                                "Atrasado": atual.totalAtrasados,
+                                "Muito Atrasado": atual.totalMuitoAtrasados,
+                                "Adiantado": atual.totalAdiantados,
+                                "Muito Adiantado": atual.totalMuitoAdiantados
+                            }
+                        };
+                    }
+
+                    function renderChart(title, anteriorData, atualData) {
+
+                        const chartContainer = document.createElement("div");
+                        chartContainer.className = "chart-container";
+
+                        chartContainer.innerHTML = `
+                        <div class="section-header">
+                            <h3>${title}</h3>
+                            <span>últimos 60 dias</span>
+                        </div>
+                        <div class="chart-panel"></div>
+                    `;
+
+                        const chartPanel = chartContainer.querySelector(".chart-panel");
+
+                        const contractData = createContractData(
+                            anteriorData,
+                            atualData
+                        );
+
+                        const months = Object.keys(contractData);
+
+                        let globalMaxValue = 0;
+
+                        for (const month of months) {
+                            for (const category of rawCategories) {
+                                const value = Number(contractData[month][category]);
+
+                                if (!isNaN(value) && value > globalMaxValue) {
+                                    globalMaxValue = value;
+                                }
+                            }
+                        }
+
+                        if (globalMaxValue === 0) {
+                            globalMaxValue = 1;
+                        }
+
+                        rawCategories.forEach(categoryKey => {
+
+                            const anteriorValue =
+                                Number(contractData["Anterior"][categoryKey]) || 0;
+
+                            const atualValue =
+                                Number(contractData["Atual"][categoryKey]) || 0;
+
+                            const groupDiv = document.createElement("div");
+                            groupDiv.className = "chart-group";
+
+                            const barsContainer = document.createElement("div");
+                            barsContainer.className = "chart-bars";
+
+                            // Barra anterior
+                            const anteriorWrapper = document.createElement("div");
+                            anteriorWrapper.className = "chart-bar";
+
+                            const anteriorValueSpan = document.createElement("span");
+                            anteriorValueSpan.className = "bar-value";
+                            anteriorValueSpan.textContent = anteriorValue;
+
+                            const anteriorBar = document.createElement("div");
+                            anteriorBar.className = "bar";
+                            anteriorBar.style.height =
+                                `${(anteriorValue / globalMaxValue) * 100}%`;
+
+                            anteriorBar.style.background = COLORS.ANTERIOR;
+
+                            anteriorWrapper.appendChild(anteriorValueSpan);
+                            anteriorWrapper.appendChild(anteriorBar);
+
+                            // Barra atual
+                            const atualWrapper = document.createElement("div");
+                            atualWrapper.className = "chart-bar";
+
+                            const atualValueSpan = document.createElement("span");
+                            atualValueSpan.className = "bar-value";
+                            atualValueSpan.textContent = atualValue;
+
+                            const atualBar = document.createElement("div");
+                            atualBar.className = "bar";
+                            atualBar.style.height =
+                                `${(atualValue / globalMaxValue) * 100}%`;
+
+                            atualBar.style.background = COLORS.ATUAL;
+
+                            atualWrapper.appendChild(atualValueSpan);
+                            atualWrapper.appendChild(atualBar);
+
+                            barsContainer.appendChild(anteriorWrapper);
+                            barsContainer.appendChild(atualWrapper);
+
+                            const categoryLabel = document.createElement("div");
+                            categoryLabel.className = "group-label";
+                            categoryLabel.textContent =
+                                displayLabels[categoryKey] || categoryKey;
+
+                            groupDiv.appendChild(barsContainer);
+                            groupDiv.appendChild(categoryLabel);
+
+                            chartPanel.appendChild(groupDiv);
+                        });
+
+                        // Legenda
+                        const legendDiv = document.createElement("div");
+                        legendDiv.className = "chart-legend";
+
+                        legendDiv.innerHTML = `
+                        <div class="legend-item">
+                            <span class="legend-color legend-anterior"></span>
+                            <span>📆 Mês Anterior</span>
+                        </div>
+
+                        <div class="legend-item">
+                            <span class="legend-color legend-atual"></span>
+                            <span>📆 Mês Atual</span>
+                        </div>
+                    `;
+
+                        chartPanel.appendChild(legendDiv);
+
+                        mainContent.appendChild(chartContainer);
+                    }
+
+                    // --------------------------------------------------
+                    // GRÁFICO GERAL
+                    // --------------------------------------------------
+
+                    renderChart(
+                        "PROGRESSO MENSAL GERAL",
+                        resumo.mesAnterior.geral,
+                        resumo.mesAtual.geral
+                    );
+
+                    // --------------------------------------------------
+                    // EDUCADORES
+                    // --------------------------------------------------
+
+                    const educadoresAtual =
+                        resumo.mesAtual.porEducador || {};
+
+                    const educadoresAnterior =
+                        resumo.mesAnterior.porEducador || {};
+
+                    Object.keys(educadoresAtual).forEach(nomeEducador => {
+
+                        const atual = educadoresAtual[nomeEducador];
+
+                        const anterior =
+                            educadoresAnterior[nomeEducador] || {
+                                totalEmDias: 0,
+                                totalAtrasados: 0,
+                                totalMuitoAtrasados: 0,
+                                totalAdiantados: 0,
+                                totalMuitoAdiantados: 0
+                            };
+
+                        renderChart(
+                            `PROGRESSO MENSAL - ${nomeEducador}`,
+                            anterior,
+                            atual
+                        );
+                    });
+                }
+            }).catch(err => {
+                // Em caso de erro, exibir mensagem e renderizar gráfico vazio:
+                console.error("Erro ao carregar dados do dashboard:", err);
+                Modal.Error("Erro", "Não foi possível carregar os dados do dashboard. Tente atualizar a página ou contate o suporte.", true, window.location.reload);
+            });
+        },
+    },
     Tools: {
         Render: () => {
             if (document.querySelector(".tools-container")) {
@@ -594,27 +948,49 @@ const UI = {
 
             // Situação
             span.appendChild(criarLabel("Situação:"));
-            span.appendChild(criarSelect([
+            const selectSituacao = criarSelect([
                 { value: "TUDO", text: "Tudo" },
-                { value: "EMDIAS", text: "🟩 Em dias" },
-                { value: "ATRASADO", text: "🟨 Atrasado" },
-                { value: "MUITOATRASADO", text: "🟥 Muito atrasado" },
-                { value: "ADIANTADO", text: "🟦 Adiantado" },
-                { value: "MUITOADIANTADO", text: "🟪 Muito adiantado" }
-            ]));
+                { value: "EM DIAS", text: "🟢 Em dias" },
+                { value: "ATRASADO", text: "🟡 Atrasado" },
+                { value: "MUITO ATRASADO", text: "🔴 Muito atrasado" },
+                { value: "ADIANTADO", text: "🔵 Adiantado" },
+                { value: "MUITO ADIANTADO", text: "🟣 Muito adiantado" }
+            ]);
+            selectSituacao.id = "select-situacao";
+            span.appendChild(selectSituacao);
             // Educador
             span.appendChild(criarLabel("Educador:"));
             const educadores = [];
             Object.keys(App.Usuarios).forEach(key => {
-                educadores.push({
-                    value: App.Usuarios[key].role,
-                    text: `👤 ${Utils.Text.toTitleCase(App.Usuarios[key].role)}`
-                });
+                if (App.Usuarios[key].role != "COORDENADOR" && App.Usuarios[key].role != "SECRETARIA") {
+                    //
+                    educadores.push({
+                        value: App.Usuarios[key].role,
+                        text: `👤 ${Utils.Text.toTitleCase(App.Usuarios[key].role)}`
+                    });
+                }
             });
-            span.appendChild(criarSelect([
+            const selectEducador = criarSelect([
                 { value: "TODOS", text: "Todos" },
                 ...educadores
-            ]));
+            ]);
+            selectEducador.id = "select-educador";
+            span.appendChild(selectEducador);
+
+            span.appendChild(criarLabel("Dias:"));
+            const selectDia = criarSelect([
+                { value: "SEGUNDA", text: "Segunda" },
+                { value: "TERCA", text: "Terça" },
+                { value: "QUARTA", text: "Quarta" },
+                { value: "QUINTA", text: "Quinta" },
+                { value: "SEXTA", text: "Sexta" },
+                { value: "SABADO", text: "Sábado" },
+                { value: "DOMINGO", text: "Domingo" },
+                { value: "TUDO", text: "Tudo" }
+            ]);
+            selectDia.id = "select-dia";
+            selectDia.value = "TUDO";
+            span.appendChild(selectDia);
 
             return span;
         },
@@ -622,223 +998,235 @@ const UI = {
     StatusBar: {
         Coordenador: async () => {
             BOTTOMBAR.innerHTML = "";
-            BOTTOMBAR.innerHTML = '<span id="app-status" style="font-size: x-small;">🟢</span><small> | Bem-vindo(a), <strong style="color: var(--LightGreen)">Coordenador(a)!</strong> Pólo LEM: 🔴 Prepara | IA - Desenvolvedor: <text-link class="developerlink" href="https://jorgesouza.com.br" target="_blank">Jorge Souza</text-link></small>';
+            BOTTOMBAR.innerHTML = '<span id="app-status">🌐</span> | <small>Bem-vindo(a), <strong style="color: var(--LightGreen)">Coordenador(a)!</strong> Pólo LEM: 🔴 Prepara | IA - Desenvolvedor: <text-link class="developerlink" href="https://jorgesouza.com.br" target="_blank">Jorge Souza</text-link></small>';
         },
         Secretaria: async () => {
             BOTTOMBAR.innerHTML = "";
-            BOTTOMBAR.innerHTML = '<span id="app-status" style="font-size: x-small;">🟢</span><small> | Bem-vindo(a), <strong style="color: var(--LightGreen)">Secretário(a)!</strong> Pólo LEM: 🔴 Prepara | IA - Desenvolvedor: <text-link class="developerlink" href="https://jorgesouza.com.br" target="_blank">Jorge Souza</text-link></small>';
+            BOTTOMBAR.innerHTML = '<span id="app-status">🌐</span> | <small>Bem-vindo(a), <strong style="color: var(--LightGreen)">Secretário(a)!</strong> Pólo LEM: 🔴 Prepara | IA - Desenvolvedor: <text-link class="developerlink" href="https://jorgesouza.com.br" target="_blank">Jorge Souza</text-link></small>';
         },
         Educador: async () => {
             BOTTOMBAR.innerHTML = "";
-            BOTTOMBAR.innerHTML = '<span id="app-status" style="font-size: x-small;">🟢</span><small> | Bem-vindo(a), <strong style="color: var(--LightGreen)">Educador(a)!</strong> Pólo LEM: 🔴 Prepara | IA - Desenvolvedor: <text-link class="developerlink" href="https://jorgesouza.com.br" target="_blank">Jorge Souza</text-link></small>';
-        },
+            BOTTOMBAR.innerHTML = '<span id="app-status">🌐</span> | <small>Bem-vindo(a), <strong style="color: var(--LightGreen)">Educador(a)!</strong> Pólo LEM: 🔴 Prepara | IA - Desenvolvedor: <text-link class="developerlink" href="https://jorgesouza.com.br" target="_blank">Jorge Souza</text-link></small>';
+        }
     },
-    "Perfil": () => {
-        alert("Perfil");
-    },
+    "Cadastros": () => {
+        APPVIEW.innerHTML = "";
+        Renderer.Load("cadastro", APPVIEW).then(async () => {
+            const saveBtn = document.getElementById("cadastro-save-btn");
+            saveBtn.addEventListener("click", () => Tooltip.Toast("Nada salvo...", 3));
+            const backBtn = document.getElementById("cadastro-back-btn");
+            backBtn.addEventListener("click", () => window.location.reload());
 
+            document.querySelector("acacia-tabs-content").style.display = "flex";
+        });
+    },
     /**
      * Endpoint para carregar dados para a aplicação
      * a partir de uma planilha de acompanhamento
      * previamente criada.
      */
     "CarregarPlanilhas": async () => {
-        try {
-            const modalContent = await Modal.Window("Atualizar", "");
-            await Renderer.Load("upload", modalContent);
-
-            // Estado dos arquivos selecionados
-            let selectedFiles = [];
-
-            // Elementos do DOM
-            const dropZone = document.getElementById('dropzone-main');
-            const fileInput = document.getElementById('fileInputMain');
-            const selectBtn = document.getElementById('selectBtnMain');
-            const fileNameDisplay = document.getElementById('fileNameDisplay');
-            const updateBtn = document.getElementById('updateBtn');
-
-            /**
-             * Atualiza a interface com a lista de arquivos e visibilidade do botão.
-             */
-            function updateUI() {
-                fileNameDisplay.innerHTML = ''; // limpa
-
-                if (selectedFiles.length > 0) {
-                    const ul = document.createElement('ul');
-                    selectedFiles.forEach(file => {
-                        const li = document.createElement('li');
-                        li.textContent = file.name;
-                        ul.appendChild(li);
-                    });
-                    fileNameDisplay.appendChild(ul);
-                }
-
-                // Mostra o botão apenas quando há exatamente dois arquivos válidos
-                updateBtn.style.opacity = selectedFiles.length === 2 ? '1' : '0';
-            }
-
-            /**
-             * Valida o array de arquivos: quantidade e formato.
-             * Exibe toasts em caso de erro e retorna false.
-             */
-            function validateFiles(files) {
-                if (files.length !== 2) {
-                    Tooltip.Toast("Devem ser carregados exatamente dois arquivos.", 5);
-                    return false;
-                }
-
-                for (const file of files) {
-                    if (file.type !== "application/vnd.ms-excel") {
-                        Tooltip.Toast(`Formato "${file.type}" não suportado. Utilize arquivos .xls.`, 5);
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            /**
-             * Aceita um novo conjunto de arquivos, substituindo qualquer seleção anterior.
-             * Se válidos, armazena e atualiza a UI; caso contrário, limpa tudo.
-             */
-            function acceptFiles(files) {
-                if (!validateFiles(files)) {
-                    selectedFiles = [];
-                    fileInput.value = ''; // limpa input file
-                    updateUI();
-                    return;
-                }
-
-                // Atualiza a lista de arquivos selecionados
-                selectedFiles = Array.from(files);
-
-                // Sincroniza o input file com os arquivos aceitos (opcional, mas mantém coerência)
-                const dt = new DataTransfer();
-                selectedFiles.forEach(f => dt.items.add(f));
-                fileInput.files = dt.files;
-
-                updateUI();
-            }
-
-            /**
-             * Lê um arquivo como base64 (string pura, sem cabeçalho data:).
-             */
-            function readFileAsBase64(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        // Extrai apenas a parte base64 do resultado
-                        const base64 = reader.result.split(',')[1];
-                        resolve(base64);
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            /**
-             * Envia os dois arquivos ao servidor no formato JSON esperado.
-             */
-            async function handleUpdate() {
-                if (selectedFiles.length !== 2) return;
-
+        const modalText = `
+            Realizar um novo acompanhamento via planilha? O Acompanhamento anterior será arquivado
+            e poderá ser verificado selecionando na caixa de seleção ao lado.
+            Certifique-se de que a planilha esteja formatada corretamente para evitar erros no processo de importação.
+            Para saber como preparar a planilhas  corretamente vá ao menu Suporte.
+            `;
+        await Modal.Confirm("Acompanhamento via Planilha", modalText).then(async response => {
+            if (response) {
                 try {
-                    const [base64_1, base64_2] = await Promise.all([
-                        readFileAsBase64(selectedFiles[0]),
-                        readFileAsBase64(selectedFiles[1])
-                    ]);
+                    const modalContent = await Modal.Window("Atualizar", "");
+                    await Renderer.Load("upload", modalContent);
 
-                    const payload = {
-                        file1: base64_1,
-                        file2: base64_2
+                    // Estado dos arquivos selecionados
+                    let selectedFiles = [];
+
+                    // Elementos do DOM
+                    const dropZone = document.getElementById('dropzone-main');
+                    const fileInput = document.getElementById('fileInputMain');
+                    const selectBtn = document.getElementById('selectBtnMain');
+                    const fileNameDisplay = document.getElementById('fileNameDisplay');
+                    const updateBtn = document.getElementById('updateBtn');
+
+                    /**
+                     * Atualiza a interface com a lista de arquivos e visibilidade do botão.
+                     */
+                    function updateUI() {
+                        fileNameDisplay.innerHTML = '';
+                        if (selectedFiles.length > 0) {
+                            const ul = document.createElement('ul');
+                            selectedFiles.forEach(file => {
+                                const li = document.createElement('li');
+                                li.textContent = file.name;
+                                ul.appendChild(li);
+                            });
+                            fileNameDisplay.appendChild(ul);
+                        }
+                        // Show button only when exactly one valid file is selected
+                        updateBtn.style.opacity = selectedFiles.length == 1 ? '1' : '0';
+                    }
+
+                    /**
+                     * Valida o array de arquivos: quantidade e formato.
+                     * Exibe toasts em caso de erro e retorna false.
+                     */
+                    function validateFiles(files) {
+                        if (files.length !== 1) {
+                            Tooltip.Toast("Deve ser carregado exatamente um arquivo.", 5);
+                            return false;
+                        }
+                        const file = files[0];
+                        // Accept only .xlsx MIME type
+                        if (file.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                            Tooltip.Toast(`Formato "${file.type}" não suportado. Utilize arquivos .xlsx.`, 5);
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    /**
+                     * Aceita um novo conjunto de arquivos, substituindo qualquer seleção anterior.
+                     * Se válidos, armazena e atualiza a UI; caso contrário, limpa tudo.
+                     */
+                    function acceptFiles(files) {
+                        if (!validateFiles(files)) {
+                            selectedFiles = [];
+                            fileInput.value = ''; // limpa input file
+                            updateUI();
+                            return;
+                        }
+
+                        // Atualiza a lista de arquivos selecionados
+                        selectedFiles = Array.from(files);
+
+                        // Sincroniza o input file com os arquivos aceitos (opcional, mas mantém coerência)
+                        const dt = new DataTransfer();
+                        selectedFiles.forEach(f => dt.items.add(f));
+                        fileInput.files = dt.files;
+
+                        updateUI();
+                    }
+
+                    /**
+                     * Lê um arquivo como base64 (string pura, sem cabeçalho data:).
+                     */
+                    function readFileAsBase64(file) {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                // Extrai apenas a parte base64 do resultado
+                                const base64 = reader.result.split(',')[1];
+                                resolve(base64);
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                    }
+
+                    /**
+                    * Envia o arquivo único ao servidor no formato JSON esperado.
+                     */
+                    async function handleUpdate() {
+                        if (selectedFiles.length !== 1) return;
+                        Tooltip.Toast("Aguarde...", 15);
+                        updateBtn.style.opacity = "0";
+
+                        try {
+                            const base64 = await readFileAsBase64(selectedFiles[0]);
+                            const payload = { file: base64 };
+
+                            const response = await App.HttpRequest.Post("/app/docs/andamento", payload);
+                            handleResponse(response);
+
+                            Tooltip.Toast("Arquivos enviados com sucesso!", 5);
+
+                            // Limpa após envio bem‑sucedido
+                            selectedFiles = [];
+                            fileInput.value = '';
+                            document.getElementById("modal-close").click();
+                            updateUI();
+                            return;
+                        } catch (error) {
+                            Modal.Error("Erro ao enviar os arquivos para o servidor.", error, true);
+                        }
+                    }
+
+                    // --- Configuração dos eventos da zona de upload única ---
+
+                    // Clique no botão de seleção ou na área do dropzone abre o seletor de arquivos
+                    selectBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        fileInput.click();
+                    });
+
+                    dropZone.addEventListener('click', (e) => {
+                        if (e.target !== selectBtn && !selectBtn.contains(e.target)) {
+                            fileInput.click();
+                        }
+                    });
+
+                    // Quando arquivos são escolhidos pelo seletor
+                    fileInput.onchange = () => {
+                        if (!fileInput.files || fileInput.files.length == 0) return;
+                        acceptFiles(fileInput.files);
                     };
 
-                    const response = await App.HttpRequest.Post("/docs/andamento", payload);
-                    handleResponse(response);
+                    // Previne comportamento padrão para eventos de drag
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                        dropZone.addEventListener(eventName, (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        });
+                    });
 
-                    Tooltip.Toast("Arquivos enviados com sucesso!", 5);
+                    // Feedback visual durante o arraste
+                    dropZone.addEventListener('dragover', () => {
+                        dropZone.classList.add('dragover');
+                    });
 
-                    // Limpa após envio bem‑sucedido
-                    selectedFiles = [];
-                    fileInput.value = '';
+                    dropZone.addEventListener('dragleave', () => {
+                        dropZone.classList.remove('dragover');
+                    });
+
+                    // Processa os arquivos soltos
+                    dropZone.addEventListener('drop', (e) => {
+                        dropZone.classList.remove('dragover');
+                        const dt = e.dataTransfer;
+                        if (dt.files && dt.files.length > 0) {
+                            acceptFiles(dt.files);
+                        }
+                    });
+
+                    // Botão "Atualizar" chama o envio
+                    updateBtn.addEventListener('click', handleUpdate);
+
+                    // Manipula a resposta
+
+                    function handleResponse(response) {
+                        const { message, data } = response;
+                        const { status, dados } = data;
+                        if (status == "ERR") {
+                            Modal.Message("Erro 🥺", "Erro ao ler o arquivo XLSX, dados faltantes ou cabeçalhos inconsistentes. Para configurar os cabeçalhos corretamente acesse o menu Suporte.");
+                            return;
+                        }
+                        console.log("message: ", message);
+                        console.log("data: ", data);
+                        window.location.reload();
+                    }
+                    // Inicializa a UI (botão oculto, display vazio)
                     updateUI();
                 } catch (error) {
-                    Modal.Error("Erro ao enviar os arquivos para o servidor.", error, true);
+                    Modal.Error("Erro ao carregar planilhas", error, true);
+                    console.error("Erro ao carregar a planilha de andamento:", error);
                 }
             }
-
-            // --- Configuração dos eventos da zona de upload única ---
-
-            // Clique no botão de seleção ou na área do dropzone abre o seletor de arquivos
-            selectBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                fileInput.click();
-            });
-
-            dropZone.addEventListener('click', (e) => {
-                if (e.target !== selectBtn && !selectBtn.contains(e.target)) {
-                    fileInput.click();
-                }
-            });
-
-            // Quando arquivos são escolhidos pelo seletor
-            fileInput.onchange = () => {
-                if (!fileInput.files || fileInput.files.length === 0) return;
-                acceptFiles(fileInput.files);
-            };
-
-            // Previne comportamento padrão para eventos de drag
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-            });
-
-            // Feedback visual durante o arraste
-            dropZone.addEventListener('dragover', () => {
-                dropZone.classList.add('dragover');
-            });
-
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('dragover');
-            });
-
-            // Processa os arquivos soltos
-            dropZone.addEventListener('drop', (e) => {
-                dropZone.classList.remove('dragover');
-                const dt = e.dataTransfer;
-                if (dt.files && dt.files.length > 0) {
-                    acceptFiles(dt.files);
-                }
-            });
-
-            // Botão "Atualizar" chama o envio
-            updateBtn.addEventListener('click', handleUpdate);
-
-            // Manipula a resposta
-
-            function handleResponse(response) {
-                const { message, data } = response;
-                const { status, dados } = data;
-                console.log("message: ", message);
-                console.log("data: ", data);
-                //
-            }
-
-            // Inicializa a UI (botão oculto, display vazio)
-            updateUI();
-
-        } catch (error) {
-            Modal.Error("Erro ao carregar planilhas", error, true);
-            console.error("Erro ao carregar a planilha de andamento:", error);
-        }
+        });
     },
-
     /**
      * Endpoint para baixar uma planilha de andamento
      * a partir dos dados de cadastro existentes.
      */
-    "GerarPlanilhaAndamento": () => {
+    "GerarPlanilhaAcompanhamento": () => {
         //
         return new Promise(async (resolve, reject) => {
             try {
@@ -850,16 +1238,10 @@ const UI = {
         });
     },
     "Relatorios": () => {
-        alert("Relatorios");
-    },
-    "Cadastros": () => {
-        alert("Cadastros");
-    },
-    "Documentos": () => {
-        alert("Documentos");
+        Modal.Confirm("Relatórios", "Funcionalidade de relatórios ainda não implementada.");
     },
     "Suporte": () => {
-        alert("Suporte");
+        Modal.Confirm("Suporte", "Funcionalidade de suporte ainda não implementada.");
     },
     renderStatus: () => {
         if (index > 10) {
@@ -869,11 +1251,25 @@ const UI = {
             appStatus.style.opacity = (index / 10).toString();
             index += 1;
         }
+    },
+    URL: () => {
+        navigator.clipboard.writeText(appURL);
+        Tooltip.Toast("Endereço da aplicação copiado para a área de transferência.", 3);
     }
 };
 
 const Utils = {
-    Date: (serial) => {
+    timeoutId: null,
+    Save: (payload) => {
+        console.log("Salvando alterações em 10s...");
+        clearTimeout(Utils.timeoutId);
+        Utils.timeoutId = setTimeout(async () => {
+            App.HttpRequest.Post("/app/update/save", payload).then(console.log).catch(console.log)
+                .then(x => console.log("Salvo com sucesso!"))
+                .catch(err => console.log("Erro ao salvar:", err));
+        }, 10000);
+    },
+    SerialToDate: (serial) => {
         const base = new Date(Date.UTC(1899, 11, 30)); // 30/12/1899
         const msPorDia = 86400000;
         const data = new Date(base.getTime() + serial * msPorDia);
@@ -884,15 +1280,44 @@ const Utils = {
         if (Number(ano) < 2000) {
             return null;
         } else {
-            return `${dia}/${mes}/${ano}`;
+            return `${dia}-${mes}-${ano}`;
         }
     },
-    FormatDate: (timestamp) => {
+    CountBy: (dados = [], campo, valor = true) => {
+        if (dados.length == 0) return 0;
+        return dados.filter(v => v[campo] == valor).length;
+    },
+    Filter: (dados = {}, filtro = { situacao: "TUDO", educador: "TODOS", dias: "TUDO" }) => {
+        const keys = Object.keys(dados);
+        if (keys.length == 0) return {};
+        const result = {};
+        keys.forEach(key => {
+            const situacaoOk = filtro.situacao == "TUDO" || dados[key]["SITUAÇÃO"] == filtro.situacao;
+            const educadorOk = filtro.educador == "TODOS" || dados[key]["EDUCADOR"] == filtro.educador;
+            const diaOk = filtro.dias == "TUDO" || Utils.DayOfWeek(dados[key]["DIA SEMANA"]) == filtro.dias;
+            if (situacaoOk && educadorOk && diaOk) result[key] = dados[key];
+        });
+        return result;
+    },
+    DayOfWeek: (serial) => {
+        const data = new Date((serial - 25569) * 86400 * 1000);
+        const dias = [
+            "DOMINGO",
+            "SEGUNDA",
+            "TERCA",
+            "QUARTA",
+            "QUINTA",
+            "SEXTA",
+            "SABADO",
+        ];
+        return dias[data.getUTCDay()];
+    },
+    TimestampToDate: (timestamp) => {
         const date = new Date(timestamp);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        return `${day}-${month}-${year}`;
     },
     Text: {
         toTitleCase: (str) => {
@@ -921,19 +1346,59 @@ const Utils = {
             return new Blob([bytes], { type: mimeType });
         }
     },
+    /**
+     * 
+     * @param {*} matriz 
+     * @param {*} texto 
+     * @returns '[ { valor, distancia } ]'
+     */
+    buscaInteligente: (matriz, texto) => {
+        function levenshtein(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) {
+                matrix[i] = [i];
+            }
+            for (let j = 0; j <= a.length; j++) {
+                matrix[0][j] = j;
+            }
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b[i - 1] == a[j - 1]) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+        const resultado = matriz.map(valor => ({
+            valor,
+            distancia: levenshtein(texto.toLowerCase(), valor.toLowerCase())
+        })).sort((a, b) => a.distancia - b.distancia);
+
+        return resultado;
+    },
     _: () => { }
 };
+
+// return;
 
 // Cria a aplicação:
 const topMenu = {
     "☰ Menu": [
-        { title: "💾 Gerar Planilha de Acompanhamento", action: UI.GerarPlanilhaAndamento },
-        { title: "👦 Perfil", action: UI.Perfil },
-        { title: "👨‍🏫 Cadastro de Educador", action: UI.Cadastros },
-        { title: "📚 Cadastro de Matérias", action: UI.Cadastros },
+        { title: "📩 Gerar Planilha de Acompanhamento", action: UI.GerarPlanilhaAcompanhamento },
+        { title: "📚 Gerar Relatório Selecionados", action: () => Modal.Confirm("Relatório", "Gerar relatório dos contratos selecionados?", UI.Relatorios) },
+        { title: "📂 Carregar Planilha de Acompanhamento", action: UI.CarregarPlanilhas },
+        { title: "📆 Feriados", action: () => Modal.Message("Feriado", "Use a página a seguir para acrescentar feriados a todos os cadastros.") },
         { title: "🗂️ Documentos", action: x => window.location = "/documents.html" },
-        { title: "⚙️ Configurações", action: x => window.location = "/settings.html" },
-        { title: '🛡️ Desenvolvedor', action: UI.Configuracoes },
+        { title: "👦 Cadastros", action: UI.Cadastros },
+        { title: "Copiar Endereço do App", action: UI.URL },
+        // { title: "⚙️ Configurações", action: x => window.location = "/settings.html" },
         { title: "ℹ️ Suporte", action: UI.Suporte },
         { title: "⛔ Sair", action: x => window.location = "/" }
     ]
@@ -944,278 +1409,422 @@ import { AcaciaDesktop } from './lib/acacia/acacia.js';
 
 const acacia = new AcaciaDesktop("Prepara LEM | Acompanhamento Pedagógico", topMenu, () => { App.Main(App.LongPooling) });
 //
-console.log(`
-%c██████╗ %c██████╗ %c███████╗ %c██████╗ %c █████╗ %c██████╗ %c █████╗ 
-%c██╔══██╗%c██╔══██╗%c██╔════╝%c██╔══██╗%c██╔══██╗%c██╔══██╗%c██╔══██╗
-%c██████╔╝%c██████╔╝%c█████╗  %c██████╔╝%c███████║%c██████╔╝%c███████║
-%c██╔═══╝ %c██╔══██╗%c██╔══╝  %c██╔═══╝ %c██╔══██║%c██╔══██╗%c██╔══██║
-%c██║     %c██║  ██║%c███████╗%c██║     %c██║  ██║%c██║  ██║%c██║  ██║
-%c╚═╝     %c╚═╝  ╚═╝%c╚══════╝%c╚═╝     %c╚═╝  ╚═╝%c╚═╝  ╚═╝%c╚═╝  ╚═╝
-`,
-    // Cores para cada letra (gradiente azul)
-    'color: #4a90d9', 'color: #5b9bd5', 'color: #6ca6d1', 'color: #7db1cd', 'color: #8ebcc9', 'color: #9fc7c5', 'color: #b0d2c1',
-    'color: #4a90d9', 'color: #5b9bd5', 'color: #6ca6d1', 'color: #7db1cd', 'color: #8ebcc9', 'color: #9fc7c5', 'color: #b0d2c1',
-    'color: #4a90d9', 'color: #5b9bd5', 'color: #6ca6d1', 'color: #7db1cd', 'color: #8ebcc9', 'color: #9fc7c5', 'color: #b0d2c1',
-    'color: #4a90d9', 'color: #5b9bd5', 'color: #6ca6d1', 'color: #7db1cd', 'color: #8ebcc9', 'color: #9fc7c5', 'color: #b0d2c1',
-    'color: #4a90d9', 'color: #5b9bd5', 'color: #6ca6d1', 'color: #7db1cd', 'color: #8ebcc9', 'color: #9fc7c5', 'color: #b0d2c1',
-    'color: #4a90d9', 'color: #5b9bd5', 'color: #6ca6d1', 'color: #7db1cd', 'color: #8ebcc9', 'color: #9fc7c5', 'color: #b0d2c1'
-);
 
-document.getElementById("favicon").href = "./files/ico.svg";
+let errorCount = 0;
+let errorTimer = null;
+
+function trackError() {
+    errorCount++;
+    if (!errorTimer) {
+        errorTimer = setTimeout(() => {
+            errorCount = 0;
+            errorTimer = null;
+        }, 60000);
+    }
+    if (errorCount >= 3) {
+        App._pooling = false;
+        Modal.Message("Aplicação Falhou", "Muitos erros ocorreram. O aplicativo parou de se comunicar com o servidor para evitar mais problemas. Por favor, recarregue a página para tentar novamente.", x => window.location.reload());
+        console.error("Loop principal encerrado devido ao excesso de erros.");
+    }
+    return errorCount < 10;
+}
 
 window.onerror = function (mensagem, arquivo, linha, coluna, erro) {
-    App.HttpRequest.Post("e/rror", { msg: `/error", "Um erro ocorreu na aplicação:\n\n ${(event.reason?.stack || event.reason)}` });
-    Tooltip.Toast("Ocorreu um erro na aplicação, acesse o menu Suporte > Logs, para mais detalhes", 5);
+    if (trackError()) App.HttpRequest.Post("/error", { msg: `Um erro ocorreu na aplicação:\n\n ${mensagem}\n${erro?.stack}` });
+    Tooltip.Toast("Ocorreu um erro na aplicação, acesse o menu Suporte > Logs, para mais detalhes", 3);
 };
 
 window.addEventListener("unhandledrejection", function (event) {
-    App.HttpRequest.Post("/error", { msg: `/error", "Um erro assíncrono ocorreu na aplicação:\n\n ${(event.reason?.stack || event.reason)}` });
-    Tooltip.Toast("Ocorreu um erro assíncrono na aplicação, acesse o menu Suporte > Logs, para mais detalhes", 5);
+    Tooltip.Toast("Ocorreu um erro assíncrono na aplicação, acesse o menu Suporte, para mais detalhes", 3);
+    if (trackError()) App.HttpRequest.Post("/error", { msg: `Um erro assíncrono ocorreu na aplicação:\n\n ${(event.reason?.stack || event.reason)}` });
 });
 
-window.App = App;
-
 // #region Modelos
-/**
- * Essa classe é uma cópia da classe Datagrid da biblioteca Acácia
- * para aceitar a manipulação de contratos semanticamente.
- */
-class PreparaGrid {
-    constructor(gridID, title, sourceData, target, selectCB, allSelectedCB) {
-        sourceData = this.dataHandle(sourceData);
-        const datagridElement = document.createElement("data-grid");
-        datagridElement.id = gridID;
-        target.innerHTML = "";
-        target.appendChild(datagridElement);
-        App.Cadastros.sourceLength = sourceData.length - 1;
-        const datagridTitle = document.createElement("data-grid-title");
-        datagridTitle.textContent = title;
-        datagridElement.appendChild(datagridTitle);
-        const headersElement = document.createElement("data-grid-headers");
-        headersElement.onclick = () => this.selectAll(gridID, selectCB, allSelectedCB);
-        const headCheckbox = document.createElement("data-grid-head");
-        const input = document.createElement("input");
-        input.setAttribute("type", "checkbox");
-        input.setAttribute("id", `${gridID}-chk`);
-        headCheckbox.append(input);
-        headersElement.append(headCheckbox);
-        const headers = sourceData[0];
-        headers.forEach(header => {
-            const head = document.createElement("data-grid-head");
-            head.textContent = header;
-            headersElement.append(head);
-        });
-        datagridElement.appendChild(headersElement);
-        sourceData.slice(1).forEach((rowData, rowIndex) => {
-            const row = document.createElement("data-grid-row");
-            const cellCheckbox = document.createElement("data-grid-cell");
-            const input = document.createElement("input");
-            input.setAttribute("type", "checkbox");
-            input.setAttribute("id", `${gridID}-chk-${rowIndex}`);
-            cellCheckbox.append(input);
-            row.append(cellCheckbox);
-            rowData.forEach(cellData => {
-                const cell = document.createElement("data-grid-cell");
-                cell.innerHTML = cellData;
-                row.append(cell);
-            });
-            row.setAttribute("id", `${gridID}-${rowIndex}`);
-            row.onclick = () => {
-                this.selectRow(`${gridID}-${rowIndex}`, `${gridID}`, selectCB, allSelectedCB);
-            };
-            row.oncontextmenu = (e) => {
-                e.preventDefault();
-                this.selectRow(`${gridID}-${rowIndex}`, `${gridID}`, selectCB, allSelectedCB, true);
-            };
-            datagridElement.appendChild(row);
-        });
-        target.addEventListener('auxclick', e => {
-            if (e.button === 1) {
-                e.preventDefault();
-            }
-        });
-        target.addEventListener("mousedown", e => {
-            if (e.button === 1) {
-                e.preventDefault();
-                e.stopPropagation();
-                document.body.style.cursor = 'grabbing';
-                document.querySelectorAll("data-grid-cell").forEach(x => {
-                    x.style.cursor = 'grabbing'
+
+const educadores = ["JORGE SOUZA", "EDILEUSA CHAVES", "JOICE LOPES", "NUBIA CARVALHO", "EDMUNDO SANTOS", "TANIA ANJOS"];
+const situacao = ["EM DIAS", "ATRASADO", "MUITO ATRASADO", "ADIANTADO", "MUITO ADIANTADO"]
+const verificacao = ["VERIFICADO", "VERIFICAR", "VERIFICAR URGENTE"];
+const Grid = {
+    // Geração de cards de contrados:
+    cardGen: (dados) => {
+        const container = document.getElementById("grid-content");
+
+        container.insertAdjacentHTML("beforeend", `
+            <div class="contractCard" data-id="${dados.id}">
+                <div class="header">
+                    <div class="nome-aluno">
+                        <span class="nome"
+                            contenteditable="true"
+                            title="${dados.aluno}">
+                            ${dados.aluno}
+                        </span>
+                    </div>
+    
+                    <div class="nome-educador">
+                        <select>
+                            ${educadores.map(e =>
+            `<option ${e == dados.educador ? "selected" : ""}>${e}</option>`
+        ).join("")}
+                        </select>
+                    </div>
+                </div>
+    
+                <div class="data-inicio">
+                    <label>Início contrato:</label>
+                    <span class="data-value">${dados.inicioContrato}</span>
+                    <span class="tool-box btn-date">🗓</span>
+                </div>
+    
+                <div class="data-fim">
+                    <label>Fim contrato:</label>
+                    <span class="data-value">${dados.fimContrato}</span>
+                    <span class="tool-box btn-date">🗓</span>
+                </div>
+    
+                <div class="dia-semana">
+                    <label>Dia da semana:</label>
+                    <span class="data-value">${dados.diaSemana}</span>
+                </div>
+    
+                <div class="aulas-curso">
+                    <label>Aulas totais:</label>
+                    <span class="data-value" contenteditable="true">${dados.aulasTotais}</span>
+                </div>
+    
+                <div class="aulas-concluidas">
+                    <label>Aulas concluídas:</label>
+    
+                    <span class="tool-box dec2">-2</span>
+                    <span class="tool-box dec1">-1</span>
+    
+                    <span class="data-value" contenteditable="true">
+                        ${dados.aulasConcluidas}
+                    </span>
+    
+                    <span class="tool-box inc1">+1</span>
+                    <span class="tool-box inc2">+2</span>
+                </div>
+    
+                <div class="aulas-atrasadas">
+                    <label>Aulas atrasadas:</label>
+                    <span class="data-value">${dados.aulasAtrasadas}</span>
+                </div>
+    
+                <div class="data-acompanhamento">
+                    <label>Último acompanhamento:</label>
+                    <span class="data-value">${dados.dataAcompanhamento}</span>
+                    <span class="tool-box btn-date">🗓</span>
+                </div>
+    
+                <div class="situacao">
+                    <span>
+                        ${dados.situacao == "ADIANTADO" ? "🟦 " : dados.situacao == "MUIRO ADIANTADO" ? "🟪 " : dados.situacao == "ATRASADO" ? "🟨 " : dados.situacao == "MUITO ATRASADO" ? "🟥 " : "🟩 "}
+                        ${dados.situacao}
+                    </span>
+                </div>
+    
+                <div class="verificacao">
+                    <span class="${dados.verificacao == "VERIFICADO" ? "green-flag" : dados.verificacao == "VERIFICAR" ? "yellow-flag" : "red-flag"}">${dados.verificacao}</span>
+                </div>
+            </div>
+        `);
+
+        const card = container.lastElementChild;
+
+        // Datas
+        card.querySelectorAll(".btn-date").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                //
+                const campo = btn.previousElementSibling;
+                const input = document.createElement("input");
+                input.type = "date";
+                const rect = btn.getBoundingClientRect();
+                input.style.position = "fixed";
+                input.style.left = `${rect.left}px`;
+                input.style.top = `${rect.bottom + 5}px`;
+                input.style.zIndex = "9999";
+                document.body.appendChild(input);
+                input.focus();
+                input.addEventListener("change", () => {
+                    const [ano, mes, dia] = input.value.split("-");
+                    campo.textContent = `${dia}/${mes}/${ano}`;
                 });
-                document.querySelectorAll("data-grid-row").forEach(x => {
-                    x.style.cursor = 'grabbing'
-                });
-                this.dragGrid(target, e);
-            }
-        });
-    }
-    selectRow(rowID, gridID, selectCB, allSelectedCB, context = false) {
-        const row = document.getElementById(rowID);
-        const cells = row.querySelectorAll("data-grid-cell");
-        const headers = document.querySelectorAll(`data-grid#${gridID} data-grid-headers data-grid-head`);
-        const input = document.querySelector(`#${rowID} input[type="checkbox"]`);
-        const obj = {};
-        input.checked = !input.checked;
-        for (let index = 1; index < headers.length; index++) {
-            const key = headers[index].textContent;
-            const value = cells[index].textContent;
-            obj[key] = value;
-        }
-        this.selectedRows(gridID, selectCB, allSelectedCB);
-        App.Cadastros.current = obj;
-        console.log("App.Cadastros.current: ", App.Cadastros.current);
-        if (!context) return;
-        Tooltip.Context([
-            {
-                Title: "Copiar Nº Contrato",
-                Ico: "files/copy.svg",
-                Action: () => App.Logica.CopiarNContrato(App.Cadastros.current)
-            },
-            {
-                Title: "Copiar Nome",
-                Ico: "files/copy.svg",
-                Action: () => App.Logica.CopiarNome(App.Cadastros.current)
-            },
-            {
-                Title: "Alterar Data Término",
-                Ico: "files/settings.svg",
-                Action: () => App.Logica.AlterarDataTermino(App.Cadastros.current)
-            },
-            {
-                Title: "Alterar Educador",
-                Ico: "files/settings.svg",
-                Action: () => App.Logica.AlterarEducador(App.Cadastros.current)
-            },
-            {
-                Title: "+Reposição",
-                Ico: "files/settings.svg",
-                Action: () => App.Logica.InserirReposicao(App.Cadastros.current)
-            },
-            {
-                Title: "+Dia de Folga",
-                Ico: "files/settings.svg",
-                Action: () => App.Logica.InserirFolga(App.Cadastros.current)
-            }
-        ]);
-    }
-    selectedRows(gridID, selectCB, allSelectedCB) {
-        App.Cadastros.selection = [];
-        const headers = document.querySelectorAll(`data-grid#${gridID} data-grid-headers data-grid-head`);
-        const rows = document.querySelectorAll(`data-grid#${gridID} data-grid-row`);
-        rows.forEach(row => {
-            const input = row.querySelector(`input[type="checkbox"]`);
-            const cells = row.querySelectorAll("data-grid-cell");
-            if (input.checked) {
-                const obj = {};
-                for (let index = 1; index < headers.length; index++) {
-                    const key = headers[index].textContent;
-                    const value = cells[index].textContent;
-                    obj[key] = value;
-                }
-                App.Cadastros.selection.push(obj);
-            }
-        });
-        App.Cadastros.selectionCount = App.Cadastros.selection.length;
-        const allSelected = App.Cadastros.selectionCount === App.Cadastros.sourceLength;
-        App.Cadastros.allSelected = allSelected;
-        document.getElementById(`${gridID}-chk`).checked = allSelected;
-        allSelected ? allSelectedCB(App.Cadastros.selectionCount) : selectCB(App.Cadastros.selection);
-    }
-    selectAll(gridID, selectCB, allSelectedCB) {
-        const rows = document.querySelectorAll(`data-grid#${gridID} data-grid-row`);
-        const inputAll = document.getElementById(`${gridID}-chk`);
-        inputAll.checked = !inputAll.checked;
-        App.Cadastros.selection = [];
-        rows.forEach(row => {
-            const input = row.querySelector(`input[type="checkbox"]`);
-            input.checked = inputAll.checked;
-            if (inputAll.checked) {
-                const headers = document.querySelectorAll(`data-grid#${gridID} data-grid-headers data-grid-head`);
-                const cells = row.querySelectorAll("data-grid-cell");
-                const obj = {};
-                for (let index = 1; index < headers.length; index++) {
-                    const key = headers[index].textContent;
-                    const value = cells[index].textContent;
-                    obj[key] = value;
-                }
-                App.Cadastros.selection.push(obj);
-            }
-        });
-        App.Cadastros.selectionCount = App.Cadastros.selection.length;
-        App.Cadastros.allSelected = App.Cadastros.selectionCount === App.Cadastros.sourceLength;
-        allSelectedCB(App.Cadastros.selectionCount);
-    }
-
-    /**
-     * const data = [
-     *   ["Head 1", "Head 2", "Head 3"],
-     *   ["Value 1", "Value 2", "Value 3", "Extra Value"],
-     *   ["Value 4", "Value 5"]
-     * ];
-     * const result = adjustMatrix(data);
-     * console.log(result);
-     * // Output:
-     * // [
-     * //   ["Head 1", "Head 2", "Head 3"],
-     * //   ["Value 1", "Value 2", "Value 3"],
-     * //   ["Value 4", "Value 5", ""]
-     * // ]
-     */
-    dataHandle(data) {
-        if (!Array.isArray(data) || data.length === 0 || !Array.isArray(data[0])) {
-            throw new Error("Invalid input: data must be a non-empty multidimensional array.");
-        }
-        const headers = data[0]; // Assume the first subarray contains headers
-        const maxLength = headers.length;
-        // Adjust each row based on the headers length
-        return data.map((row, rowIndex) => {
-            if (rowIndex === 0) {
-                // Keep headers as is
-                return row.slice(0, maxLength);
-            }
-            // If the row has more items than headers, truncate it
-            if (row.length > maxLength) {
-                return row.slice(0, maxLength);
-            }
-            // If the row has fewer items than headers, pad with empty strings
-            return [...row, ...Array(maxLength - row.length).fill("")];
-        });
-    }
-    dragGrid(container, e) {
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
-        let scrollLeft = 0;
-        let scrollTop = 0;
-
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        scrollLeft = container.scrollLeft;
-        scrollTop = container.scrollTop;
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            container.scrollLeft = scrollLeft - dx;
-            container.scrollTop = scrollTop - dy;
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            document.body.style.cursor = '';
-            document.querySelectorAll("data-grid-cell").forEach(x => {
-                x.style.cursor = ''
+                input.addEventListener("blur", input.remove);
             });
-            document.querySelectorAll("data-grid-row").forEach(x => {
-                x.style.cursor = ''
-            });
-            window.removeEventListener('mousemove', () => { });
-            window.removeEventListener('mouseup', () => { });
         });
+
+        // Selecionar elementos editáveis:
+        function selectContent(e, element) {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(e.target);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        const nome = card.querySelector(".nome");
+        const aulasTotais = card.querySelector(".aulas-curso .data-value");
+        const aulasConcluidas = card.querySelector(".aulas-concluidas .data-value");
+        const aulasAtrasadas = card.querySelector(".aulas-atrasadas .data-value");
+        nome.addEventListener("click", e => selectContent(e, nome));
+        aulasTotais.addEventListener("click", e => selectContent(e, aulasTotais));
+        aulasConcluidas.addEventListener("click", e => selectContent(e, aulasConcluidas));
+        aulasAtrasadas.addEventListener("click", e => selectContent(e, aulasAtrasadas));
+
+        // Nome completo ao editar
+        nome.addEventListener("blur", () => {
+            const texto = nome.textContent.trim();
+            nome.textContent = texto;
+        });
+
+        // Incremento / decremento aulas concluídas
+        card.querySelector(".dec2").addEventListener("click", () => {
+            aulasConcluidas.textContent =
+                Math.max(0, Number(aulasConcluidas.textContent) - 2);
+        });
+
+        card.querySelector(".dec1").addEventListener("click", () => {
+            aulasConcluidas.textContent =
+                Math.max(0, Number(aulasConcluidas.textContent) - 1);
+        });
+
+        card.querySelector(".inc1").addEventListener("click", () => {
+            aulasConcluidas.textContent =
+                Number(aulasConcluidas.textContent) + 1;
+        });
+
+        card.querySelector(".inc2").addEventListener("click", () => {
+            aulasConcluidas.textContent =
+                Number(aulasConcluidas.textContent) + 2;
+        });
+        // Solicita salvamento automático das alterações no:
+        // clique, saída do mouse e pressionamento de teclas
+        card.addEventListener("click", () => {
+            const id = card.getAttribute("data-id");
+            App.Cadastros.current = App.Cadastros.contratos[id];
+            console.log(App.Cadastros.current);
+            Utils.Save(Grid.saveCardData());
+        });
+        card.addEventListener("mouseleave", () => {
+            const id = card.getAttribute("data-id");
+            App.Cadastros.current = App.Cadastros.contratos[id];
+            console.log(App.Cadastros.current);
+            Utils.Save(Grid.saveCardData());
+        });
+        card.addEventListener("keyup", () => {
+            const id = card.getAttribute("data-id");
+            App.Cadastros.current = App.Cadastros.contratos[id];
+            console.log(App.Cadastros.current);
+            Utils.Save(Grid.saveCardData());
+        });
+    },
+    // Obtenção de dados de contratos dos cards
+    saveCardData: () => {
+        const cards = document.querySelectorAll(".contractCard");
+        const dados = {};
+        cards.forEach(card => {
+            const nome = card.querySelector(".nome").textContent.trim();
+            dados[card.dataset.id] = {
+                id: card.dataset.id,
+                aluno: nome,
+                educador: card.querySelector("select").value,
+                inicioContrato: card.querySelector(".data-inicio .data-value").textContent.trim(),
+                fimContrato: card.querySelector(".data-fim .data-value").textContent.trim(),
+                diaSemana: card.querySelector(".dia-semana .data-value").textContent.trim(),
+                aulasTotais: Number(card.querySelector(".aulas-curso .data-value").textContent.trim()),
+                aulasConcluidas: Number(card.querySelector(".aulas-concluidas .data-value").textContent.trim()),
+                aulasAtrasadas: Number(card.querySelector(".aulas-atrasadas .data-value").textContent.trim()),
+                dataAcompanhamento: card.querySelector(".data-acompanhamento .data-value").textContent.trim(),
+                situacao: card.querySelector(".situacao span").textContent.trim(),
+                verificacao: card.querySelector(".verificacao span").textContent.trim()
+            };
+        });
+        return dados;
     }
 }
-// #endregion
+
+const resumo = {
+    "mesAtual": {
+        "geral": {
+            "totalAlunos": 500,
+            "totalAdiantados": 36,
+            "totalAtrasados": 93,
+            "totalMuitoAtrasados": 58,
+            "totalMuitoAdiantados": 17,
+            "totalEmDias": 296,
+            "totalVerificados": 115,
+            "totalVerificar": 383,
+            "totalVerificarUrgente": 2,
+            "concluidos": 21
+        },
+        "porEducador": {
+            "JOICE LOPES": {
+                "totalAlunos": 81,
+                "totalAdiantados": 7,
+                "totalAtrasados": 12,
+                "totalMuitoAtrasados": 10,
+                "totalMuitoAdiantados": 2,
+                "totalEmDias": 50,
+                "totalVerificados": 29,
+                "totalVerificar": 52,
+                "totalVerificarUrgente": 0,
+                "concluidos": 1
+            },
+            "NUBIA CARVALHO": {
+                "totalAlunos": 55,
+                "totalAdiantados": 6,
+                "totalAtrasados": 12,
+                "totalMuitoAtrasados": 5,
+                "totalMuitoAdiantados": 3,
+                "totalEmDias": 29,
+                "totalVerificados": 0,
+                "totalVerificar": 54,
+                "totalVerificarUrgente": 1,
+                "concluidos": 4
+            },
+            "JORGE SOUZA": {
+                "totalAlunos": 89,
+                "totalAdiantados": 7,
+                "totalAtrasados": 19,
+                "totalMuitoAtrasados": 11,
+                "totalMuitoAdiantados": 3,
+                "totalEmDias": 49,
+                "totalVerificados": 5,
+                "totalVerificar": 84,
+                "totalVerificarUrgente": 0,
+                "concluidos": 8
+            },
+            "EDILEUSA CHAVES": {
+                "totalAlunos": 148,
+                "totalAdiantados": 9,
+                "totalAtrasados": 29,
+                "totalMuitoAtrasados": 17,
+                "totalMuitoAdiantados": 5,
+                "totalEmDias": 88,
+                "totalVerificados": 48,
+                "totalVerificar": 100,
+                "totalVerificarUrgente": 0,
+                "concluidos": 3
+            },
+            "EDMUNDO SANTOS": {
+                "totalAlunos": 109,
+                "totalAdiantados": 7,
+                "totalAtrasados": 20,
+                "totalMuitoAtrasados": 5,
+                "totalMuitoAdiantados": 3,
+                "totalEmDias": 74,
+                "totalVerificados": 20,
+                "totalVerificar": 89,
+                "totalVerificarUrgente": 0,
+                "concluidos": 5
+            },
+            "TANIA ANJOS": {
+                "totalAlunos": 18,
+                "totalAdiantados": 0,
+                "totalAtrasados": 1,
+                "totalMuitoAtrasados": 10,
+                "totalMuitoAdiantados": 1,
+                "totalEmDias": 6,
+                "totalVerificados": 13,
+                "totalVerificar": 4,
+                "totalVerificarUrgente": 1,
+                "concluidos": 0
+            }
+        }
+    },
+    "mesAnterior": {
+        "geral": {
+            "totalAlunos": 500,
+            "totalAdiantados": 36,
+            "totalAtrasados": 93,
+            "totalMuitoAtrasados": 58,
+            "totalMuitoAdiantados": 17,
+            "totalEmDias": 296,
+            "totalVerificados": 115,
+            "totalVerificar": 383,
+            "totalVerificarUrgente": 2,
+            "concluidos": 21
+        },
+        "porEducador": {
+            "JOICE LOPES": {
+                "totalAlunos": 81,
+                "totalAdiantados": 7,
+                "totalAtrasados": 12,
+                "totalMuitoAtrasados": 10,
+                "totalMuitoAdiantados": 2,
+                "totalEmDias": 50,
+                "totalVerificados": 29,
+                "totalVerificar": 52,
+                "totalVerificarUrgente": 0,
+                "concluidos": 1
+            },
+            "NUBIA CARVALHO": {
+                "totalAlunos": 55,
+                "totalAdiantados": 6,
+                "totalAtrasados": 12,
+                "totalMuitoAtrasados": 5,
+                "totalMuitoAdiantados": 3,
+                "totalEmDias": 29,
+                "totalVerificados": 0,
+                "totalVerificar": 54,
+                "totalVerificarUrgente": 1,
+                "concluidos": 4
+            },
+            "JORGE SOUZA": {
+                "totalAlunos": 89,
+                "totalAdiantados": 7,
+                "totalAtrasados": 19,
+                "totalMuitoAtrasados": 11,
+                "totalMuitoAdiantados": 3,
+                "totalEmDias": 49,
+                "totalVerificados": 5,
+                "totalVerificar": 84,
+                "totalVerificarUrgente": 0,
+                "concluidos": 8
+            },
+            "EDILEUSA CHAVES": {
+                "totalAlunos": 148,
+                "totalAdiantados": 9,
+                "totalAtrasados": 29,
+                "totalMuitoAtrasados": 17,
+                "totalMuitoAdiantados": 5,
+                "totalEmDias": 88,
+                "totalVerificados": 48,
+                "totalVerificar": 100,
+                "totalVerificarUrgente": 0,
+                "concluidos": 3
+            },
+            "EDMUNDO SANTOS": {
+                "totalAlunos": 109,
+                "totalAdiantados": 7,
+                "totalAtrasados": 20,
+                "totalMuitoAtrasados": 5,
+                "totalMuitoAdiantados": 3,
+                "totalEmDias": 74,
+                "totalVerificados": 20,
+                "totalVerificar": 89,
+                "totalVerificarUrgente": 0,
+                "concluidos": 5
+            },
+            "TANIA ANJOS": {
+                "totalAlunos": 18,
+                "totalAdiantados": 0,
+                "totalAtrasados": 1,
+                "totalMuitoAtrasados": 10,
+                "totalMuitoAdiantados": 1,
+                "totalEmDias": 6,
+                "totalVerificados": 13,
+                "totalVerificar": 4,
+                "totalVerificarUrgente": 1,
+                "concluidos": 0
+            }
+        }
+    }
+}
+//#endregion
+
+// Master functions:
+window["App"] = App;
+window["Utils"] = Utils;
+window["UI"] = UI;
 
 // EOF
