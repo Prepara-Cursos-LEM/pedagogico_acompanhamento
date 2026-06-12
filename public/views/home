@@ -1,19 +1,31 @@
 <grid-column id="grid-column">
-    <card-big class="no-elastic no-hover tools" style="width: fit-content; padding: 3px;">
-        <button-squared id="update-btn" style="background-color: var(--MediumBlue);" onmouseover="Tooltip.Tooltip('Quantidade de contratos', this)">
+    <style>
+        #tools-card {
+            width: fit-content;
+            padding: 3px;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            border-radius: 0 !important;
+        }
+    </style>
+    <card-big class="no-elastic no-hover tools" id="tools-card">
+        <button-squared id="update-btn" style="display: none; background-color: var(--MediumBlue);" onmouseover="Tooltip.Tooltip('Quantidade de contratos', this)">
             <span class="columns-icon" id="contracts-count" style="color: white; font-weight: bolder;">0</span>
         </button-squared>
-        <span style="display: flex; align-items: center; justify-content: center; background-color: var(--MediumBlue); padding: 5px 15px; border-radius: 5px;">
+        <button-squared style="display: none;" id="print-btn" onmouseover="Tooltip.Tooltip('Gerar relatório dos contratos selecionados', this)">
+            <span class="columns-icon">🗒</span>
+        </button-squared>
+        <span id="pesquisa-label" style="display: none; align-items: center; justify-content: center; background-color: var(--MediumBlue); padding: 5px 15px; border-radius: 5px;">
             <label for="pesquisa-contratos" style="height: fit-content; width: fit-content; opacity: 0.75; color: white;">🔎︎</label>
         </span>
-        <input type="text" name="" id="pesquisa-contratos" class="acacia-input" style="border: var(--MediumBlue) 1px solid;" placeholder="Pesquisa indisponível" disabled>
+        <input type="text" name="" id="pesquisa-contratos" class="acacia-input" style="display: none; border: var(--MediumBlue) 1px solid;" placeholder="Pesquisa indisponível">
         <grid-row style="width: fit-content; background-color: var(--DarkBlue); padding: 5px; gap: 5px; height: 100%; border-radius: 5px;">
             <text-label>Acompanhamento:</text-label>
             <select id="atualizacoes" class="acacia-input"></select>
         </grid-row>
-        <button-squared id="print-btn" onmouseover="Tooltip.Tooltip('Gerar relatório dos contratos selecionados', this)">
-            <span class="columns-icon">🗒</span>
-        </button-squared>
         <button-squared id="tools-refresh-btn" style="background-color: var(--SeaBlue);" onmouseover="Tooltip.Tooltip('Atualizar exibição', this)">
             <span class="columns-icon">⟳</span>
         </button-squared>

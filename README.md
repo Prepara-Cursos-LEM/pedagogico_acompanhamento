@@ -44,10 +44,41 @@ A instalação é feita em quatro passos simples:
 
 A seguir o passo a passo para a instalação do app para quem já utilizou e teve de formatar o computador:
 
-1. Se você formatou o computador:
-2. Baixe novamente a aplicação em:
-3. Configure a rede (veja adiante como configurar).
-4. Instale novamente.
+### Se você formatou o computador:
+
+1. Baixe novamente a aplicação em:
+
+https://github.com/Prepara-Cursos-LEM/pedagogico_acompanhamento/main/app.zip
+
+2. Descompacte dentro da pasta Documentos.
+
+3. Abra o aplica
+
+4. Renomeie o computador:
+
+No Windows 10 ou 11:
+
+1. Pressione `Win + R`.
+2. Digite:
+
+```text
+sysdm.cpl
+```
+
+3. Vá para a aba **Nome do Computador**.
+4. Clique em **Alterar...**
+5. Em **Nome do computador**, digite:
+
+```text
+COORDENACAO
+```
+
+6. Clique em **OK**.
+7. Reinicie o computador.
+
+5. Copie a URL:
+
+http://COORDENACAO:9123
 
 A seguir o passo a passo para a instalação do app para quem está utilizando pela primeira vez:
 

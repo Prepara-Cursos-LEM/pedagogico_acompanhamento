@@ -92,14 +92,12 @@ const App = {
             UI.MainGrid.Render();
         });
         tabRelatorios.addEventListener("click", x => {
-            Tooltip.Toast("Funcionalidade RELATÓRIOS ainda não implementada.", 5);
-            // App.Cadastros.filtros.guiaAtual = "Livros";
-            // UI.MainGrid.Render();
+            App.Cadastros.filtros.guiaAtual = "Relatorios";
+            UI.MainGrid.Render();
         });
         tabLivros.addEventListener("click", x => {
-            Tooltip.Toast("Funcionalidade LIVROS ainda não implementada.", 5);
-            // App.Cadastros.filtros.guiaAtual = "Livros";
-            // UI.MainGrid.Render();
+            App.Cadastros.filtros.guiaAtual = "Livros";
+            UI.MainGrid.Render();
         });
 
         // Finalização da inicialização:
@@ -448,7 +446,6 @@ const UI = {
                     const container = document.getElementById("grid-content");
                     container.innerHTML = "";
                     Tooltip.Toast("Carregando todos os contratos...", 3);
-                    container.innerHTML = "";
                     setTimeout(() => {
                         UI.MainGrid.Helpers.render(App.Cadastros.contratos);
                     }, 2000);
@@ -555,6 +552,21 @@ const UI = {
             },
         },
         Geral: () => {
+            App.Cadastros.selection = {};
+            App.Cadastros.filtros.dias.filtrar = "SEGUNDA";
+            App.Cadastros.filtros.situacao.filtrar = "TUDO";
+            App.Cadastros.filtros.educador.filtrar = "TODOS";
+
+            // Lógica da Aba:
+            document.getElementById("update-btn").style.display = "flex";
+            document.getElementById("pesquisa-label").style.display = "flex";
+            const pesquisa = document.getElementById("pesquisa-contratos");
+            pesquisa.style.display = "flex";
+            pesquisa.placeholder = "Pesquisar contratos...";
+            pesquisa.focus();
+
+            //
+
             App.Cadastros.contratos = App.Cadastros.source;
             const tabs = document.querySelectorAll('acacia-tabs-item');
             tabs.forEach((tab, index) => {
@@ -588,9 +600,11 @@ const UI = {
             document.getElementById("tab2").classList.add("active");
 
             // Lógica da Aba:
+            document.getElementById("update-btn").style.display = "flex";
+            document.getElementById("pesquisa-label").style.display = "flex";
             const pesquisa = document.getElementById("pesquisa-contratos");
+            pesquisa.style.display = "flex";
             pesquisa.placeholder = "Pesquisar contratos...";
-            pesquisa.removeAttribute("disabled");
             pesquisa.focus();
             document.getElementById("select-dia").value = App.Cadastros.filtros.dias.filtrar;
             document.getElementById("select-situacao").value = App.Cadastros.filtros.situacao.filtrar;
@@ -604,23 +618,41 @@ const UI = {
             return;
         },
         Relatorios: () => {
+            // Lógica da Aba:
+            document.getElementById("update-btn").style.display = "none";
+            document.getElementById("pesquisa-label").style.display = "none";
+            document.getElementById("pesquisa-contratos").style.display = "none";
+
+            App.Cadastros.contratos = {};
             const tabs = document.querySelectorAll('acacia-tabs-item');
             tabs.forEach((tab, index) => {
                 tab.classList.remove('active');
             });
             document.getElementById("tab3").classList.add("active");
-            Renderer.Load("relatorios", document.getElementById("main-content"));
+            //
+            const container = document.getElementById("grid-content");
+            container.innerHTML = '<p style="padding: 25px; opacity: 0.5; font-size: 1.2rem;">Funcionalidade de relatórios em implementação...</p>';
+            //
+            return
+            Renderer.Load("relatorios", document.getElementById("grid-content"));
         },
         Livros: () => {
-            Modal.Message("Não implementado", "Funcionalidade de controle de entrega de livros ainda não implementada.", () => {
-                window.location.reload();
-            });
-            return;
+            // Lógica da Aba:
+            document.getElementById("update-btn").style.display = "none";
+            document.getElementById("pesquisa-label").style.display = "none";
+            document.getElementById("pesquisa-contratos").style.display = "none";
+
+            App.Cadastros.contratos = {};
             const tabs = document.querySelectorAll('acacia-tabs-item');
             tabs.forEach((tab, index) => {
                 tab.classList.remove('active');
             });
             document.getElementById("tab4").classList.add("active");
+            const container = document.getElementById("grid-content");
+            container.innerHTML = '<p style="padding: 25px; opacity: 0.5; font-size: 1.2rem;">Funcionalidade de controle de apostilas em implementação...</p>';
+            //
+            return
+            Renderer.Load("relatorios", document.getElementById("grid-content"));
         },
         Render: () => {
             UI.MainGrid[App.Cadastros.filtros.guiaAtual]();
@@ -1236,9 +1268,6 @@ const UI = {
                 reject(error);
             }
         });
-    },
-    "Relatorios": () => {
-        Modal.Confirm("Relatórios", "Funcionalidade de relatórios ainda não implementada.");
     },
     "Suporte": () => {
         Modal.Confirm("Suporte", "Funcionalidade de suporte ainda não implementada.");
